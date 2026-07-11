@@ -3,6 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "./db";
 import { ISSUE_CATEGORY, ISSUE_PRIORITY, ISSUE_RAISED_BY, ISSUE_STATUS } from "./enums";
+import { getRole, can, type Capability } from "./rbac";
+
+/** Throw if the active role lacks the capability (server-side enforcement). */
+function assertCan(capability: Capability) {
+  if (!can(capability, getRole())) {
+    throw new Error(`Not permitted: ${capability}`);
+  }
+}
 
 function pick<T extends readonly string[]>(allowed: T, value: unknown, fallback: T[number]): T[number] {
   return (allowed as readonly string[]).includes(String(value)) ? (value as T[number]) : fallback;
@@ -10,6 +18,7 @@ function pick<T extends readonly string[]>(allowed: T, value: unknown, fallback:
 
 /** Create a maintenance/issue ticket on a property. */
 export async function createIssue(formData: FormData) {
+  assertCan("editIssues");
   const propertyId = String(formData.get("propertyId") ?? "");
   const title = String(formData.get("title") ?? "").trim();
   if (!propertyId || !title) return;
@@ -33,6 +42,7 @@ export async function createIssue(formData: FormData) {
 
 /** Advance or set an issue's status. */
 export async function updateIssueStatus(formData: FormData) {
+  assertCan("editIssues");
   const id = String(formData.get("id") ?? "");
   const status = pick(ISSUE_STATUS, formData.get("status"), "OPEN");
   if (!id) return;
@@ -46,6 +56,7 @@ export async function updateIssueStatus(formData: FormData) {
 
 /** Record a payment against a rent charge (clears / reduces arrears). */
 export async function recordPayment(formData: FormData) {
+  assertCan("recordPayments");
   const rentChargeId = String(formData.get("rentChargeId") ?? "");
   if (!rentChargeId) return;
   const charge = await prisma.rentCharge.findUnique({

@@ -14,7 +14,7 @@ const icons = {
   tax: "€",
 } as const;
 
-export function Nav({ t }: { t: Dictionary }) {
+export function Nav({ t, canViewTax = true }: { t: Dictionary; canViewTax?: boolean }) {
   const pathname = usePathname();
   const items = [
     { href: "/", label: t.nav.dashboard, icon: icons.dashboard, match: (p: string) => p === "/" },
@@ -22,7 +22,9 @@ export function Nav({ t }: { t: Dictionary }) {
     { href: "/arrears", label: t.nav.arrears, icon: icons.arrears, match: (p: string) => p.startsWith("/arrears") },
     { href: "/issues", label: t.nav.issues, icon: icons.issues, match: (p: string) => p.startsWith("/issues") },
     { href: "/projects", label: t.nav.projects, icon: icons.projects, match: (p: string) => p.startsWith("/projects") },
-    { href: "/tax", label: t.nav.tax, icon: icons.tax, match: (p: string) => p.startsWith("/tax") },
+    ...(canViewTax
+      ? [{ href: "/tax", label: t.nav.tax, icon: icons.tax, match: (p: string) => p.startsWith("/tax") }]
+      : []),
   ];
   return (
     <nav className="flex flex-col gap-1">

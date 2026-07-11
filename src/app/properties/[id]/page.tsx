@@ -19,11 +19,15 @@ import {
 } from "@/lib/enums";
 import { NewIssueForm } from "@/components/NewIssueForm";
 import { MarkPaidButton, IssueStatusButtons } from "@/components/ActionButtons";
+import { getRole, can } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
 export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
   const { locale, t } = getI18n();
+  const role = getRole();
+  const canPay = can("recordPayments", role);
+  const canEdit = can("editIssues", role);
   const detail = await getPropertyDetail(params.id);
   if (!detail) notFound();
   const { property: p, stats, charges } = detail;
@@ -153,7 +157,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                           <ChargeBadge status={c.status} locale={locale} />
                         </td>
                         <td className="td">
-                          <MarkPaidButton chargeId={c.id} locale={locale} />
+                          {canPay && <MarkPaidButton chargeId={c.id} locale={locale} />}
                         </td>
                       </tr>
                     ))}
@@ -169,7 +173,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
               <h2 className="text-sm font-semibold text-slate-700">
                 {t.property.openIssues} ({openIssues.length})
               </h2>
-              <NewIssueForm propertyId={p.id} locale={locale} />
+              {canEdit && <NewIssueForm propertyId={p.id} locale={locale} />}
             </div>
             {openIssues.length === 0 ? (
               <p className="text-sm text-slate-400">{t.issues.none}</p>
@@ -188,7 +192,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                     <div className="flex items-center gap-2">
                       <PriorityBadge priority={i.priority} locale={locale} />
                       <IssueStatusBadge status={i.status} locale={locale} />
-                      <IssueStatusButtons id={i.id} status={i.status} locale={locale} />
+                      {canEdit && <IssueStatusButtons id={i.id} status={i.status} locale={locale} />}
                     </div>
                   </li>
                 ))}

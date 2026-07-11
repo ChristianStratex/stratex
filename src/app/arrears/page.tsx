@@ -4,6 +4,7 @@ import { getArrears } from "@/lib/queries";
 import { euro, formatDate } from "@/lib/format";
 import { ChargeBadge } from "@/components/badges";
 import { MarkPaidButton } from "@/components/ActionButtons";
+import { getRole, can } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ const BUCKET_COLORS: Record<string, string> = {
 
 export default async function ArrearsPage() {
   const { locale, t } = getI18n();
+  const canPay = can("recordPayments", getRole());
   const rows = await getArrears();
   const total = rows.reduce((s, r) => s + r.outstanding, 0);
 
@@ -89,7 +91,7 @@ export default async function ArrearsPage() {
                       <ChargeBadge status={r.status} locale={locale} />
                     </td>
                     <td className="td">
-                      <MarkPaidButton chargeId={r.chargeId} locale={locale} />
+                      {canPay && <MarkPaidButton chargeId={r.chargeId} locale={locale} />}
                     </td>
                   </tr>
                 ))}

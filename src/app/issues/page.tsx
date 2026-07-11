@@ -4,12 +4,14 @@ import { getIssues } from "@/lib/queries";
 import { euro, formatDate } from "@/lib/format";
 import { IssueStatusBadge, PriorityBadge } from "@/components/badges";
 import { IssueStatusButtons } from "@/components/ActionButtons";
+import { getRole, can } from "@/lib/rbac";
 import { label, ISSUE_CATEGORY_LABELS, ISSUE_RAISED_BY_LABELS } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
 
 export default async function IssuesPage() {
   const { locale, t } = getI18n();
+  const canEdit = can("editIssues", getRole());
   const issues = await getIssues();
   const open = issues.filter((i) => i.status !== "RESOLVED");
 
@@ -71,7 +73,7 @@ export default async function IssuesPage() {
                     <IssueStatusBadge status={i.status} locale={locale} />
                   </td>
                   <td className="td">
-                    <IssueStatusButtons id={i.id} status={i.status} locale={locale} />
+                    {canEdit && <IssueStatusButtons id={i.id} status={i.status} locale={locale} />}
                   </td>
                 </tr>
               ))}

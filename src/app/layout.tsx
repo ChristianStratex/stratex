@@ -3,8 +3,10 @@ import Link from "next/link";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { getI18n } from "@/i18n";
+import { getRole, can } from "@/lib/rbac";
 import { Nav } from "@/components/Nav";
 import { LocaleToggle } from "@/components/LocaleToggle";
+import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { DemoBanner } from "@/components/DemoBanner";
 
 export const metadata: Metadata = {
@@ -14,6 +16,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, t } = getI18n();
+  const role = getRole();
+  const canViewTax = can("viewTax", role);
   return (
     <html lang={locale}>
       <body>
@@ -30,13 +34,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div className="text-[10px] text-slate-400">{t.tagline}</div>
               </div>
             </Link>
-            <Nav t={t} />
-            <div className="mt-auto pt-4">
-              <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                {t.common.language}
-              </div>
+            <Nav t={t} canViewTax={canViewTax} />
+            <div className="mt-auto space-y-3 pt-4">
               <div className="px-2">
-                <LocaleToggle locale={locale} />
+                <RoleSwitcher role={role} locale={locale} />
+              </div>
+              <div>
+                <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  {t.common.language}
+                </div>
+                <div className="px-2">
+                  <LocaleToggle locale={locale} />
+                </div>
               </div>
             </div>
           </aside>

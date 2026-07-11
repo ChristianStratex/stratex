@@ -1,8 +1,25 @@
 import { getI18n } from "@/i18n";
+import { getRole, can, ROLE_LABELS } from "@/lib/rbac";
 import { TaxCalculator } from "@/components/TaxCalculator";
 
 export default function TaxPage() {
   const { locale, t } = getI18n();
+  const role = getRole();
+  if (!can("viewTax", role)) {
+    return (
+      <div className="card p-8 text-center">
+        <div className="text-3xl">🔒</div>
+        <h1 className="mt-2 text-lg font-semibold text-slate-800">
+          {locale === "nl" ? "Geen toegang" : "No access"}
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          {locale === "nl"
+            ? `De rol "${ROLE_LABELS[role].nl}" heeft geen toegang tot de fiscale module. Wissel naar Eigenaar of Accountant.`
+            : `The "${ROLE_LABELS[role].en}" role cannot access the tax module. Switch to Owner or Accountant.`}
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-5">
       <header>
