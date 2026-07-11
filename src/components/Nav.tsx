@@ -11,6 +11,7 @@ const icons = {
   arrears: "⚠",
   issues: "🔧",
   projects: "🏗",
+  tenants: "👤",
   tax: "€",
 } as const;
 
@@ -20,6 +21,7 @@ export function Nav({ t, canViewTax = true }: { t: Dictionary; canViewTax?: bool
     { href: "/", label: t.nav.dashboard, icon: icons.dashboard, match: (p: string) => p === "/" },
     { href: "/properties", label: t.nav.properties, icon: icons.properties, match: (p: string) => p.startsWith("/properties") },
     { href: "/arrears", label: t.nav.arrears, icon: icons.arrears, match: (p: string) => p.startsWith("/arrears") },
+    { href: "/tenants", label: t.nav.tenants, icon: icons.tenants, match: (p: string) => p.startsWith("/tenants") },
     { href: "/issues", label: t.nav.issues, icon: icons.issues, match: (p: string) => p.startsWith("/issues") },
     { href: "/projects", label: t.nav.projects, icon: icons.projects, match: (p: string) => p.startsWith("/projects") },
     ...(canViewTax

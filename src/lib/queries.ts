@@ -410,6 +410,62 @@ export async function getIssues() {
   });
 }
 
+export interface TenantRow {
+  id: string;
+  name: string;
+  contact: string | null;
+  email: string | null;
+  leaseCount: number;
+  monthlyRent: number;
+  properties: string[];
+  arrears: number;
+  nextEnd: Date | null;
+}
+
+/** Tenant rent-roll: each tenant with active leases, total rent and arrears. */
+export async function getTenants(): Promise<TenantRow[]> {
+  const today = now();
+  const tenants = await prisma.tenant.findMany({
+    include: {
+      leases: {
+        include: {
+          unit: { include: { property: true } },
+          rentCharges: { include: { payments: true } },
+        },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return tenants
+    .map((tn) => {
+      const active = tn.leases.filter((l) => l.status === "ACTIVE");
+      const monthlyRent = active.reduce((s, l) => s + l.monthlyRent + l.serviceCharge, 0);
+      let arrears = 0;
+      for (const l of tn.leases) {
+        for (const c of l.rentCharges) {
+          const st = deriveChargeState(c, today);
+          if (st.isArrears) arrears += st.outstanding;
+        }
+      }
+      const properties = [...new Set(active.map((l) => l.unit.property.name))];
+      const ends = active.map((l) => l.endDate).filter((d): d is Date => !!d).sort((a, b) => a.getTime() - b.getTime());
+      return {
+        id: tn.id,
+        name: tn.name,
+        contact: tn.contact,
+        email: tn.email,
+        leaseCount: active.length,
+        monthlyRent,
+        properties,
+        arrears,
+        nextEnd: ends[0] ?? null,
+      };
+    })
+    .filter((t) => t.leaseCount > 0)
+    .sort((a, b) => b.monthlyRent - a.monthlyRent);
+}
+
 export async function getProjects() {
   return prisma.project.findMany({
     include: { property: true },
