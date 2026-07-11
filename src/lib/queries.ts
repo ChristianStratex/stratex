@@ -375,6 +375,34 @@ export async function getInsights() {
   };
 }
 
+export interface CollectionPoint {
+  periodYm: string;
+  expected: number;
+  collected: number;
+  rate: number; // %
+}
+
+/** Rent collected vs. expected over the last N months — collection-rate trend. */
+export async function getCollectionTrend(months = 6): Promise<CollectionPoint[]> {
+  const charges = await prisma.rentCharge.findMany({ include: { payments: true } });
+  const map = new Map<string, { expected: number; collected: number }>();
+  for (const c of charges) {
+    const e = map.get(c.periodYm) ?? { expected: 0, collected: 0 };
+    e.expected += c.amount;
+    e.collected += c.payments.reduce((s, p) => s + p.amount, 0);
+    map.set(c.periodYm, e);
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-months)
+    .map(([periodYm, v]) => ({
+      periodYm,
+      expected: Math.round(v.expected),
+      collected: Math.round(v.collected),
+      rate: v.expected > 0 ? (v.collected / v.expected) * 100 : 100,
+    }));
+}
+
 export async function getIssues() {
   return prisma.issue.findMany({
     include: { property: true },

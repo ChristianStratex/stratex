@@ -33,6 +33,9 @@ const dictionaries = {
       byType: "Per type",
       allProperties: "Alle panden",
       health: "Status",
+      collection: "Huurincasso (geïnd vs. verwacht)",
+      expected: "Verwacht",
+      collected: "Geïnd",
     },
     insights: {
       title: "Acties & kansen",
@@ -150,6 +153,9 @@ const dictionaries = {
       byType: "By type",
       allProperties: "All properties",
       health: "Status",
+      collection: "Rent collection (collected vs. expected)",
+      expected: "Expected",
+      collected: "Collected",
     },
     insights: {
       title: "Actions & opportunities",

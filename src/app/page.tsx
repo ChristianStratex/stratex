@@ -1,9 +1,9 @@
 import { getI18n } from "@/i18n";
-import { getKpis, getPortfolio, getInsights } from "@/lib/queries";
+import { getKpis, getPortfolio, getInsights, getCollectionTrend } from "@/lib/queries";
 import { euro, percent } from "@/lib/format";
 import { KpiCard } from "@/components/KpiCard";
 import { MapPanel } from "@/components/MapPanel";
-import { DonutChart } from "@/components/Charts";
+import { DonutChart, CollectionChart } from "@/components/Charts";
 import { PropertyTable } from "@/components/PropertyTable";
 import { Insights } from "@/components/Insights";
 import { label, PROPERTY_TYPE_LABELS } from "@/lib/enums";
@@ -12,7 +12,12 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const { locale, t } = getI18n();
-  const [kpis, portfolio, insights] = await Promise.all([getKpis(), getPortfolio(), getInsights()]);
+  const [kpis, portfolio, insights, collection] = await Promise.all([
+    getKpis(),
+    getPortfolio(),
+    getInsights(),
+    getCollectionTrend(),
+  ]);
 
   const mapPoints = portfolio
     .filter((p) => p.latitude && p.longitude)
@@ -71,6 +76,12 @@ export default async function DashboardPage() {
             <DonutChart data={typeSlices} />
           </div>
         </div>
+      </section>
+
+      {/* Collection trend */}
+      <section className="card p-4">
+        <div className="mb-1 text-sm font-semibold text-slate-700">{t.dashboard.collection}</div>
+        <CollectionChart data={collection} expectedLabel={t.dashboard.expected} collectedLabel={t.dashboard.collected} />
       </section>
 
       {/* All properties */}

@@ -14,6 +14,8 @@ import {
   CartesianGrid,
   LineChart,
   Line,
+  BarChart,
+  Bar,
 } from "recharts";
 
 const PALETTE = ["#1b5df5", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#14b8a6", "#64748b"];
@@ -96,6 +98,30 @@ export function ComparisonChart({
         <Line type="monotone" dataKey="personal" name={personalLabel} stroke="#8b5cf6" strokeWidth={2} dot={false} />
         <Line type="monotone" dataKey="bv" name={bvLabel} stroke="#1b5df5" strokeWidth={2} dot={false} />
       </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function CollectionChart({
+  data,
+  expectedLabel,
+  collectedLabel,
+}: {
+  data: { periodYm: string; expected: number; collected: number }[];
+  expectedLabel: string;
+  collectedLabel: string;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
+        <XAxis dataKey="periodYm" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+        <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v: number) => `€${(v / 1000).toFixed(0)}k`} width={48} />
+        <Tooltip formatter={(v: number) => `€ ${new Intl.NumberFormat("nl-NL").format(v)}`} />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Bar dataKey="expected" name={expectedLabel} fill="#cbd5e1" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="collected" name={collectedLabel} fill="#10b981" radius={[3, 3, 0, 0]} />
+      </BarChart>
     </ResponsiveContainer>
   );
 }
