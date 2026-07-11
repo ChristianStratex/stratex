@@ -1,0 +1,210 @@
+// StrateX — commercial real estate portfolio schema.
+// Dev/demo uses SQLite for portability; production target is PostgreSQL (EU region).
+// Enum-like fields are stored as String with allowed values documented inline,
+// because SQLite does not support native enums. Values are validated in app code
+// (see src/lib/enums.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A legal owner of property: the owner personally, or a company/holding/SPV.
+/// Drives the personal-vs-BV tax modelling.
+model LegalEntity {
+  id         String     @id @default(cuid())
+  name       String
+  type       String // PERSONAL | BV | HOLDING | SPV
+  kvkNumber  String? // Kamer van Koophandel registration number
+  taxRegime  String     @default("BOX3") // BOX3 | VPB (corporate)
+  notes      String?
+  createdAt  DateTime   @default(now())
+  properties Property[]
+}
+
+/// A user of the app with a role (RBAC).
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String   @default("VIEWER") // OWNER | MANAGER | ACCOUNTANT | ASSISTANT | VIEWER
+  locale    String   @default("nl") // nl | en
+  createdAt DateTime @default(now())
+}
+
+/// A physical property / building.
+model Property {
+  id              String   @id @default(cuid())
+  name            String
+  street          String
+  postalCode      String
+  city            String
+  country         String   @default("NL")
+  latitude        Float?
+  longitude       Float?
+  type            String // OFFICE | RETAIL | LOGISTICS | RESIDENTIAL | MIXED | LAND | MONUMENT
+  status          String   @default("ACTIVE") // ACTIVE | IN_DEVELOPMENT | FOR_SALE | SOLD
+  kadasterRef     String?
+  purchasePrice   Float? // acquisition price (EUR)
+  purchaseDate    DateTime?
+  wozValue        Float? // current WOZ-waarde (EUR)
+  monthlyCost     Float    @default(0) // recurring non-mortgage cost (service charges, mgmt, maintenance reserve)
+  imageUrl        String?
+
+  ownerEntityId   String
+  ownerEntity     LegalEntity @relation(fields: [ownerEntityId], references: [id])
+
+  units       Unit[]
+  issues      Issue[]
+  projects    Project[]
+  mortgages   Mortgage[]
+  valuations  Valuation[]
+
+  createdAt   DateTime @default(now())
+
+  @@index([ownerEntityId])
+  @@index([city])
+}
+
+/// A lettable sub-space of a property (a building can have many units).
+model Unit {
+  id          String   @id @default(cuid())
+  label       String // e.g. "Ground floor", "Unit 2B"
+  floorAreaM2 Float?
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  leases      Lease[]
+
+  @@index([propertyId])
+}
+
+/// A tenant (company or private person).
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  email     String?
+  phone     String?
+  kvkNumber String?
+  leases    Lease[]
+  createdAt DateTime @default(now())
+}
+
+/// A lease agreement linking a unit to a tenant.
+model Lease {
+  id                String   @id @default(cuid())
+  unitId            String
+  unit              Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  startDate         DateTime
+  endDate           DateTime?
+  monthlyRent       Float // EUR per month
+  deposit           Float    @default(0)
+  serviceCharge     Float    @default(0)
+  indexationClause  Boolean  @default(true) // annual CPI indexation
+  lastIndexedAt     DateTime?
+  nextReviewDate    DateTime?
+  status            String   @default("ACTIVE") // ACTIVE | ENDED | UPCOMING
+  rentCharges       RentCharge[]
+
+  @@index([unitId])
+  @@index([tenantId])
+}
+
+/// A monthly expected rent charge (invoice) generated per lease.
+model RentCharge {
+  id        String   @id @default(cuid())
+  leaseId   String
+  lease     Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  periodYm  String // "2026-07"
+  dueDate   DateTime
+  amount    Float
+  status    String   @default("OPEN") // OPEN | PAID | PARTIAL | LATE | MISSING
+  payments  Payment[]
+
+  @@unique([leaseId, periodYm])
+  @@index([leaseId])
+  @@index([status])
+}
+
+/// A payment received (from bank feed or manual), matched to a rent charge.
+model Payment {
+  id           String   @id @default(cuid())
+  rentChargeId String?
+  rentCharge   RentCharge? @relation(fields: [rentChargeId], references: [id])
+  amount       Float
+  receivedAt   DateTime
+  method       String   @default("BANK") // BANK | MANUAL
+  reference    String?
+  createdAt    DateTime @default(now())
+
+  @@index([rentChargeId])
+}
+
+/// An issue / maintenance ticket on a property, raised by tenant, manager or owner.
+model Issue {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  raisedBy    String // TENANT | MANAGER | OWNER
+  category    String // MAINTENANCE | LEGAL | PAYMENT | DAMAGE | OTHER
+  priority    String   @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  status      String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED
+  cost        Float?
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+
+  @@index([propertyId])
+  @@index([status])
+}
+
+/// A redevelopment / renovation project.
+model Project {
+  id          String   @id @default(cuid())
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id])
+  name        String
+  description String?
+  status      String   @default("PLANNING") // PLANNING | IN_PROGRESS | ON_HOLD | COMPLETED
+  budget      Float?
+  spent       Float    @default(0)
+  startDate   DateTime?
+  targetDate  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+/// A mortgage / loan attached to a property (feeds cash-flow + tax deductibility).
+model Mortgage {
+  id            String   @id @default(cuid())
+  propertyId    String
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  lender        String
+  principal     Float
+  interestRate  Float // annual %, e.g. 4.1
+  monthlyPayment Float // total monthly (interest + amortisation)
+  startDate     DateTime?
+  endDate       DateTime?
+
+  @@index([propertyId])
+}
+
+/// A WOZ / appraisal valuation record over time.
+model Valuation {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  date       DateTime
+  value      Float
+  kind       String   @default("WOZ") // WOZ | APPRAISAL | PURCHASE
+
+  @@index([propertyId])
+}
