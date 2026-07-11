@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import { daysBetween, agingBucket } from "./format";
+import { deriveChargeState } from "./payments";
 
 // ---- Types returned to the UI ----
 
@@ -52,22 +52,8 @@ export interface PortfolioKpis {
 
 const now = () => new Date();
 
-/** Derive the paid amount and status of a rent charge. */
-function chargeState(
-  charge: { amount: number; dueDate: Date; payments: { amount: number }[] },
-  today: Date,
-) {
-  const paid = charge.payments.reduce((s, p) => s + p.amount, 0);
-  const outstanding = Math.max(0, charge.amount - paid);
-  const overdueDays = charge.dueDate < today ? daysBetween(today, charge.dueDate) : 0;
-  let status: "PAID" | "PARTIAL" | "LATE" | "MISSING" | "OPEN";
-  if (outstanding <= 0.01) status = "PAID";
-  else if (paid > 0) status = "PARTIAL";
-  else if (overdueDays > 60) status = "MISSING";
-  else if (overdueDays > 0) status = "LATE";
-  else status = "OPEN";
-  return { paid, outstanding, overdueDays, status };
-}
+/** Derive the paid amount and status of a rent charge (delegates to pure logic). */
+const chargeState = deriveChargeState;
 
 /** All properties with computed stats — powers the dashboard, map and table. */
 export async function getPortfolio(): Promise<PropertyStats[]> {
@@ -253,7 +239,7 @@ export async function getArrears(): Promise<ArrearsRow[]> {
         amount: c.amount,
         outstanding: st.outstanding,
         daysLate: st.overdueDays,
-        bucket: agingBucket(st.overdueDays),
+        bucket: st.bucket,
         status: st.status,
       });
     }
