@@ -17,6 +17,8 @@ import {
   ISSUE_CATEGORY_LABELS,
   ISSUE_RAISED_BY_LABELS,
 } from "@/lib/enums";
+import { NewIssueForm } from "@/components/NewIssueForm";
+import { MarkPaidButton, IssueStatusButtons } from "@/components/ActionButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -137,6 +139,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                       <th className="th text-right">{t.arrears.amount}</th>
                       <th className="th text-right">{t.arrears.daysLate}</th>
                       <th className="th">{t.arrears.status}</th>
+                      <th className="th"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -149,6 +152,9 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                         <td className="td">
                           <ChargeBadge status={c.status} locale={locale} />
                         </td>
+                        <td className="td">
+                          <MarkPaidButton chargeId={c.id} locale={locale} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -159,15 +165,18 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
 
           {/* Issues */}
           <section className="card p-4">
-            <h2 className="mb-3 text-sm font-semibold text-slate-700">
-              {t.property.openIssues} ({openIssues.length})
-            </h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-700">
+                {t.property.openIssues} ({openIssues.length})
+              </h2>
+              <NewIssueForm propertyId={p.id} locale={locale} />
+            </div>
             {openIssues.length === 0 ? (
               <p className="text-sm text-slate-400">{t.issues.none}</p>
             ) : (
               <ul className="divide-y divide-slate-50">
                 {openIssues.map((i) => (
-                  <li key={i.id} className="flex items-center justify-between py-2">
+                  <li key={i.id} className="flex items-center justify-between gap-2 py-2">
                     <div>
                       <div className="text-sm font-medium text-slate-800">{i.title}</div>
                       <div className="text-xs text-slate-400">
@@ -179,6 +188,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
                     <div className="flex items-center gap-2">
                       <PriorityBadge priority={i.priority} locale={locale} />
                       <IssueStatusBadge status={i.status} locale={locale} />
+                      <IssueStatusButtons id={i.id} status={i.status} locale={locale} />
                     </div>
                   </li>
                 ))}

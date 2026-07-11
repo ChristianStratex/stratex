@@ -3,6 +3,7 @@ import { getI18n } from "@/i18n";
 import { getArrears } from "@/lib/queries";
 import { euro, formatDate } from "@/lib/format";
 import { ChargeBadge } from "@/components/badges";
+import { MarkPaidButton } from "@/components/ActionButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,7 @@ export default async function ArrearsPage() {
                   <th className="th text-right">{t.arrears.daysLate}</th>
                   <th className="th text-center">{t.arrears.bucket}</th>
                   <th className="th">{t.arrears.status}</th>
+                  <th className="th"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -85,6 +87,9 @@ export default async function ArrearsPage() {
                     </td>
                     <td className="td">
                       <ChargeBadge status={r.status} locale={locale} />
+                    </td>
+                    <td className="td">
+                      <MarkPaidButton chargeId={r.chargeId} locale={locale} />
                     </td>
                   </tr>
                 ))}

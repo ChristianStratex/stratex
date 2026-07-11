@@ -3,6 +3,7 @@ import { getI18n } from "@/i18n";
 import { getIssues } from "@/lib/queries";
 import { euro, formatDate } from "@/lib/format";
 import { IssueStatusBadge, PriorityBadge } from "@/components/badges";
+import { IssueStatusButtons } from "@/components/ActionButtons";
 import { label, ISSUE_CATEGORY_LABELS, ISSUE_RAISED_BY_LABELS } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,7 @@ export default async function IssuesPage() {
                 <th className="th text-right">{t.issues.cost}</th>
                 <th className="th">{t.issues.priority}</th>
                 <th className="th">{t.issues.status}</th>
+                <th className="th"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -67,6 +69,9 @@ export default async function IssuesPage() {
                   </td>
                   <td className="td">
                     <IssueStatusBadge status={i.status} locale={locale} />
+                  </td>
+                  <td className="td">
+                    <IssueStatusButtons id={i.id} status={i.status} locale={locale} />
                   </td>
                 </tr>
               ))}
