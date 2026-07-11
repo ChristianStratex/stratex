@@ -2,12 +2,14 @@ import { getI18n } from "@/i18n";
 import { getPortfolio } from "@/lib/queries";
 import { euro } from "@/lib/format";
 import { PropertyExplorer } from "@/components/PropertyExplorer";
+import { ImportPanel } from "@/components/ImportPanel";
 import { getRole, can } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
 export default async function PropertiesPage() {
   const { locale, t } = getI18n();
+  const role = getRole();
   const portfolio = await getPortfolio();
 
   const totalValue = portfolio.reduce((s, p) => s + (p.wozValue ?? 0), 0);
@@ -29,7 +31,7 @@ export default async function PropertiesPage() {
             <div className="stat-label">{t.kpi.monthlyIncome}</div>
             <div className="font-semibold text-emerald-600">{euro(totalIncome, locale)}</div>
           </div>
-          {can("exportData", getRole()) && (
+          {can("exportData", role) && (
             <a
               href="/api/export/properties"
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
@@ -40,6 +42,8 @@ export default async function PropertiesPage() {
         </div>
       </header>
       <PropertyExplorer rows={portfolio} t={t} locale={locale} />
+
+      {can("importData", role) && <ImportPanel locale={locale} />}
     </div>
   );
 }

@@ -6,7 +6,7 @@ export const ROLE_COOKIE = "stratex_role";
 export const DEFAULT_ROLE: Role = "OWNER";
 export const ALL_ROLES: Role[] = ["OWNER", "MANAGER", "ACCOUNTANT", "ASSISTANT", "VIEWER"];
 
-export type Capability = "recordPayments" | "editIssues" | "viewTax" | "exportData";
+export type Capability = "recordPayments" | "editIssues" | "viewTax" | "exportData" | "importData";
 
 // Permission matrix — which roles hold which capability.
 const MATRIX: Record<Capability, Role[]> = {
@@ -14,6 +14,7 @@ const MATRIX: Record<Capability, Role[]> = {
   editIssues: ["OWNER", "MANAGER", "ASSISTANT"],
   viewTax: ["OWNER", "ACCOUNTANT"],
   exportData: ["OWNER", "MANAGER", "ACCOUNTANT"],
+  importData: ["OWNER", "MANAGER"],
 };
 
 export function can(capability: Capability, role: Role): boolean {
