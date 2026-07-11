@@ -1,17 +1,18 @@
 import { getI18n } from "@/i18n";
-import { getKpis, getPortfolio } from "@/lib/queries";
+import { getKpis, getPortfolio, getInsights } from "@/lib/queries";
 import { euro, percent } from "@/lib/format";
 import { KpiCard } from "@/components/KpiCard";
 import { MapPanel } from "@/components/MapPanel";
 import { DonutChart } from "@/components/Charts";
 import { PropertyTable } from "@/components/PropertyTable";
+import { Insights } from "@/components/Insights";
 import { label, PROPERTY_TYPE_LABELS } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const { locale, t } = getI18n();
-  const [kpis, portfolio] = await Promise.all([getKpis(), getPortfolio()]);
+  const [kpis, portfolio, insights] = await Promise.all([getKpis(), getPortfolio(), getInsights()]);
 
   const mapPoints = portfolio
     .filter((p) => p.latitude && p.longitude)
@@ -50,6 +51,9 @@ export default async function DashboardPage() {
         <KpiCard label={t.kpi.openIssues} value={String(kpis.openIssues)} tone={kpis.openIssues > 0 ? "warning" : "positive"} href="/issues" />
         <KpiCard label={t.kpi.expiringSoon} value={String(kpis.expiringSoon)} tone={kpis.expiringSoon > 0 ? "warning" : "default"} sub="≤ 6 mnd" />
       </section>
+
+      {/* Actions & opportunities */}
+      <Insights data={insights} t={t} locale={locale} />
 
       {/* Map + breakdowns */}
       <section className="grid gap-4 lg:grid-cols-3">

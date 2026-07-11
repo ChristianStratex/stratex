@@ -295,6 +295,86 @@ export async function getPropertyDetail(id: string) {
   return { property: p, stats, charges };
 }
 
+export interface Insight {
+  kind: "EXPIRING" | "VACANT" | "INDEXATION" | "ARREARS";
+  title: string; // property or tenant reference
+  propertyId: string;
+  detail: string; // machine-neutral detail, formatted in the component
+  amount?: number;
+  date?: Date;
+}
+
+/**
+ * Revenue-leakage / action signals — the "make more money" levers:
+ * leases expiring soon, vacant units, rent indexation due, and worst arrears.
+ */
+export async function getInsights() {
+  const today = now();
+  const in6m = new Date(today.getTime() + 183 * 24 * 60 * 60 * 1000);
+  const in3m = new Date(today.getTime() + 92 * 24 * 60 * 60 * 1000);
+
+  const properties = await prisma.property.findMany({
+    include: {
+      units: { include: { leases: { include: { tenant: true } } } },
+    },
+  });
+
+  const expiring: Insight[] = [];
+  const vacant: Insight[] = [];
+  const indexation: Insight[] = [];
+
+  for (const p of properties) {
+    for (const u of p.units) {
+      const active = u.leases.filter((l) => l.status === "ACTIVE");
+      if (active.length === 0 && p.status !== "SOLD") {
+        vacant.push({
+          kind: "VACANT",
+          title: p.name,
+          propertyId: p.id,
+          detail: u.label,
+        });
+      }
+      for (const l of active) {
+        if (l.endDate && l.endDate >= today && l.endDate <= in6m) {
+          expiring.push({
+            kind: "EXPIRING",
+            title: p.name,
+            propertyId: p.id,
+            detail: l.tenant.name,
+            date: l.endDate,
+            amount: l.monthlyRent,
+          });
+        }
+        if (l.indexationClause && l.nextReviewDate && l.nextReviewDate >= today && l.nextReviewDate <= in3m) {
+          indexation.push({
+            kind: "INDEXATION",
+            title: p.name,
+            propertyId: p.id,
+            detail: l.tenant.name,
+            date: l.nextReviewDate,
+            amount: l.monthlyRent,
+          });
+        }
+      }
+    }
+  }
+
+  const arrears = (await getArrears()).slice(0, 5).map<Insight>((a) => ({
+    kind: "ARREARS",
+    title: a.propertyName,
+    propertyId: a.propertyId,
+    detail: a.tenant,
+    amount: a.outstanding,
+  }));
+
+  return {
+    expiring: expiring.sort((a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0)),
+    vacant,
+    indexation,
+    arrears,
+  };
+}
+
 export async function getIssues() {
   return prisma.issue.findMany({
     include: { property: true },
