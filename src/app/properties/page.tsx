@@ -19,7 +19,7 @@ export default async function PropertiesPage() {
           <h1 className="text-2xl font-bold text-slate-900">{t.nav.properties}</h1>
           <p className="text-sm text-slate-500">{t.dashboard.subtitle}</p>
         </div>
-        <div className="flex gap-4 text-right text-sm">
+        <div className="flex items-center gap-4 text-right text-sm">
           <div>
             <div className="stat-label">{t.kpi.totalValue}</div>
             <div className="font-semibold text-slate-900">{euro(totalValue, locale, { compact: true })}</div>
@@ -28,6 +28,12 @@ export default async function PropertiesPage() {
             <div className="stat-label">{t.kpi.monthlyIncome}</div>
             <div className="font-semibold text-emerald-600">{euro(totalIncome, locale)}</div>
           </div>
+          <a
+            href="/api/export/properties"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            ↓ CSV
+          </a>
         </div>
       </header>
       <PropertyExplorer rows={portfolio} t={t} locale={locale} />
