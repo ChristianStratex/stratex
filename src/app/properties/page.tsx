@@ -1,7 +1,7 @@
 import { getI18n } from "@/i18n";
 import { getPortfolio } from "@/lib/queries";
 import { euro } from "@/lib/format";
-import { PropertyTable } from "@/components/PropertyTable";
+import { PropertyExplorer } from "@/components/PropertyExplorer";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export default async function PropertiesPage() {
           </div>
         </div>
       </header>
-      <PropertyTable rows={portfolio} t={t} locale={locale} />
+      <PropertyExplorer rows={portfolio} t={t} locale={locale} />
     </div>
   );
 }
