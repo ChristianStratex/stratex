@@ -12,7 +12,12 @@ const dictionaries = {
       issues: "Meldingen",
       projects: "Projecten",
       tenants: "Huurders",
+      bank: "Bank & incasso",
       tax: "Fiscale structuur",
+    },
+    bank: {
+      title: "Bank & incasso",
+      subtitle: "Importeer banktransacties en koppel ze automatisch aan openstaande huur",
     },
     tenants: {
       title: "Huurders",
@@ -144,7 +149,12 @@ const dictionaries = {
       issues: "Issues",
       projects: "Projects",
       tenants: "Tenants",
+      bank: "Bank & collection",
       tax: "Tax structure",
+    },
+    bank: {
+      title: "Bank & collection",
+      subtitle: "Import bank transactions and auto-match them to open rent charges",
     },
     tenants: {
       title: "Tenants",

@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "./db";
 import { ISSUE_CATEGORY, ISSUE_PRIORITY, ISSUE_RAISED_BY, ISSUE_STATUS, PROPERTY_TYPES, ENTITY_TYPES } from "./enums";
 import { getRole, can, type Capability } from "./rbac";
+import { parseCsvLine } from "./csv";
+import { parseBankCsv, matchTransactions, type MatchProposal, type OpenChargeLite } from "./reconcile";
+import { deriveChargeState } from "./payments";
 
 /** Throw if the active role lacks the capability (server-side enforcement). */
 function assertCan(capability: Capability) {
@@ -77,35 +80,6 @@ export async function recordPayment(formData: FormData) {
 }
 
 // --- CSV bulk import of properties ---
-
-/** Minimal RFC-4180-ish CSV row parser (handles quotes and escaped quotes). */
-function parseCsvLine(line: string): string[] {
-  const out: string[] = [];
-  let cur = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (inQuotes) {
-      if (c === '"' && line[i + 1] === '"') {
-        cur += '"';
-        i++;
-      } else if (c === '"') {
-        inQuotes = false;
-      } else {
-        cur += c;
-      }
-    } else if (c === '"') {
-      inQuotes = true;
-    } else if (c === ",") {
-      out.push(cur);
-      cur = "";
-    } else {
-      cur += c;
-    }
-  }
-  out.push(cur);
-  return out.map((s) => s.trim());
-}
 
 export interface ImportResult {
   created: number;
@@ -188,4 +162,68 @@ export async function importProperties(csv: string): Promise<ImportResult> {
   revalidatePath("/properties");
   revalidatePath("/");
   return result;
+}
+
+// --- Bank reconciliation ---
+
+/**
+ * Parse a pasted bank CSV export and propose matches against all open rent
+ * charges. Read-only preview — nothing is written until applyReconciliation.
+ */
+export async function previewReconciliation(csv: string): Promise<{ proposals: MatchProposal[]; errors: string[] }> {
+  assertCan("recordPayments");
+  const { txs, errors } = parseBankCsv(csv);
+  if (txs.length === 0) return { proposals: [], errors };
+
+  const today = new Date();
+  const charges = await prisma.rentCharge.findMany({
+    include: {
+      payments: true,
+      lease: { include: { tenant: true, unit: { include: { property: true } } } },
+    },
+  });
+  const open: OpenChargeLite[] = [];
+  for (const c of charges) {
+    const st = deriveChargeState(c, today);
+    if (st.outstanding > 0.01) {
+      open.push({
+        id: c.id,
+        tenant: c.lease.tenant.name,
+        property: c.lease.unit.property.name,
+        periodYm: c.periodYm,
+        amount: c.amount,
+        outstanding: st.outstanding,
+      });
+    }
+  }
+  return { proposals: matchTransactions(txs, open), errors };
+}
+
+/** Apply accepted matches: create a Payment per (chargeId, amount). */
+export async function applyReconciliation(
+  matches: { chargeId: string; amount: number; reference: string }[],
+): Promise<{ applied: number }> {
+  assertCan("recordPayments");
+  let applied = 0;
+  for (const m of matches) {
+    if (!m.chargeId || !(m.amount > 0)) continue;
+    const charge = await prisma.rentCharge.findUnique({ where: { id: m.chargeId }, include: { payments: true } });
+    if (!charge) continue;
+    const paid = charge.payments.reduce((s, p) => s + p.amount, 0);
+    const outstanding = Math.max(0, charge.amount - paid);
+    if (outstanding <= 0.01) continue; // already settled meanwhile
+    await prisma.payment.create({
+      data: {
+        rentChargeId: m.chargeId,
+        amount: Math.min(m.amount, outstanding),
+        receivedAt: new Date(),
+        method: "BANK",
+        reference: m.reference?.slice(0, 140) || "Bankimport",
+      },
+    });
+    applied++;
+  }
+  revalidatePath("/arrears");
+  revalidatePath("/");
+  return { applied };
 }

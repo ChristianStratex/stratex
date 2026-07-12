@@ -12,10 +12,19 @@ const icons = {
   issues: "🔧",
   projects: "🏗",
   tenants: "👤",
+  bank: "🏦",
   tax: "€",
 } as const;
 
-export function Nav({ t, canViewTax = true }: { t: Dictionary; canViewTax?: boolean }) {
+export function Nav({
+  t,
+  canViewTax = true,
+  canBank = true,
+}: {
+  t: Dictionary;
+  canViewTax?: boolean;
+  canBank?: boolean;
+}) {
   const pathname = usePathname();
   const items = [
     { href: "/", label: t.nav.dashboard, icon: icons.dashboard, match: (p: string) => p === "/" },
@@ -24,6 +33,9 @@ export function Nav({ t, canViewTax = true }: { t: Dictionary; canViewTax?: bool
     { href: "/tenants", label: t.nav.tenants, icon: icons.tenants, match: (p: string) => p.startsWith("/tenants") },
     { href: "/issues", label: t.nav.issues, icon: icons.issues, match: (p: string) => p.startsWith("/issues") },
     { href: "/projects", label: t.nav.projects, icon: icons.projects, match: (p: string) => p.startsWith("/projects") },
+    ...(canBank
+      ? [{ href: "/bank", label: t.nav.bank, icon: icons.bank, match: (p: string) => p.startsWith("/bank") }]
+      : []),
     ...(canViewTax
       ? [{ href: "/tax", label: t.nav.tax, icon: icons.tax, match: (p: string) => p.startsWith("/tax") }]
       : []),

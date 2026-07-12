@@ -18,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const { locale, t } = getI18n();
   const role = getRole();
   const canViewTax = can("viewTax", role);
+  const canBank = can("recordPayments", role);
   return (
     <html lang={locale}>
       <body>
@@ -34,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div className="text-[10px] text-slate-400">{t.tagline}</div>
               </div>
             </Link>
-            <Nav t={t} canViewTax={canViewTax} />
+            <Nav t={t} canViewTax={canViewTax} canBank={canBank} />
             <div className="mt-auto space-y-3 pt-4">
               <div className="px-2">
                 <RoleSwitcher role={role} locale={locale} />
