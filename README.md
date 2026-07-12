@@ -19,6 +19,9 @@ Bilingual **Dutch / English**, EUR-native, designed around Dutch tax reality
   monthly rent, monthly cost, net cashflow, yield, occupancy, **late payments per renter**,
   **open issues**, leases, valuation trend, and mortgage.
 - **Arrears board** — outstanding/late rent by tenant with aging buckets (0-30/31-60/61-90/90+).
+- **Bank reconciliation** — paste any bank's CSV export; transactions auto-match to open
+  rent charges (amount + tenant-name + period heuristics, confidence-scored) and apply as
+  payments. The same engine will consume the PSD2 bank feed later.
 - **Issues / maintenance tracker** — tickets raised by tenant, manager or owner.
 - **Projects** — redevelopment budget vs. spend and timeline.
 - **Tax-structure planner** — interactive personal (Box 3) vs. BV (Vpb + Box 2) scenario
@@ -46,7 +49,8 @@ Other scripts:
 ```bash
 npm run build          # production build
 npm run start          # run the production build
-npm run db:seed        # reseed demo data
+npm run db:seed        # reseed demo data (13 properties)
+npm run db:seed:large  # 300-property scale demo
 npm run db:studio      # browse the database (Prisma Studio)
 npm test               # run unit tests (tax + arrears logic)
 ```
