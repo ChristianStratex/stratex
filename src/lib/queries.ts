@@ -376,6 +376,78 @@ export async function getInsights() {
   };
 }
 
+export interface EntityReport {
+  name: string;
+  type: string;
+  taxRegime: string;
+  kvkNumber: string | null;
+  propertyCount: number;
+  totalWoz: number;
+  totalPurchase: number;
+  monthlyIncome: number;
+  monthlyCost: number;
+  netCashflow: number;
+  annualNet: number;
+  grossYield: number | null;
+  occupancy: number;
+  arrears: number;
+  openIssues: number;
+}
+
+/** Per-legal-entity P&L rollup — the accountant / tax-structure view. */
+export async function getEntityReport(): Promise<EntityReport[]> {
+  const [portfolio, entities] = await Promise.all([
+    getPortfolio(),
+    prisma.legalEntity.findMany(),
+  ]);
+  const byName = new Map<string, EntityReport>();
+  for (const e of entities) {
+    byName.set(e.name, {
+      name: e.name,
+      type: e.type,
+      taxRegime: e.taxRegime,
+      kvkNumber: e.kvkNumber,
+      propertyCount: 0,
+      totalWoz: 0,
+      totalPurchase: 0,
+      monthlyIncome: 0,
+      monthlyCost: 0,
+      netCashflow: 0,
+      annualNet: 0,
+      grossYield: null,
+      occupancy: 0,
+      arrears: 0,
+      openIssues: 0,
+    });
+  }
+  const unitTotals = new Map<string, { units: number; occupied: number }>();
+  for (const p of portfolio) {
+    const r = byName.get(p.ownerName);
+    if (!r) continue;
+    r.propertyCount++;
+    r.totalWoz += p.wozValue ?? 0;
+    r.totalPurchase += p.purchasePrice ?? 0;
+    r.monthlyIncome += p.monthlyIncome;
+    r.monthlyCost += p.monthlyCost;
+    r.arrears += p.arrearsAmount;
+    r.openIssues += p.openIssues;
+    const u = unitTotals.get(p.ownerName) ?? { units: 0, occupied: 0 };
+    u.units += p.unitCount;
+    u.occupied += p.occupiedUnits;
+    unitTotals.set(p.ownerName, u);
+  }
+  for (const r of byName.values()) {
+    r.netCashflow = r.monthlyIncome - r.monthlyCost;
+    r.annualNet = r.netCashflow * 12;
+    r.grossYield = r.totalWoz > 0 ? (r.monthlyIncome * 12) / r.totalWoz * 100 : null;
+    const u = unitTotals.get(r.name);
+    r.occupancy = u && u.units > 0 ? (u.occupied / u.units) * 100 : 0;
+  }
+  return [...byName.values()]
+    .filter((r) => r.propertyCount > 0)
+    .sort((a, b) => b.totalWoz - a.totalWoz);
+}
+
 export interface CollectionPoint {
   periodYm: string;
   expected: number;
