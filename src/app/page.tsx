@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getI18n } from "@/i18n";
 import { getKpis, getPortfolio, getInsights, getCollectionTrend } from "@/lib/queries";
 import { euro, percent } from "@/lib/format";
@@ -12,12 +13,18 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const { locale, t } = getI18n();
-  const [kpis, portfolio, insights, collection] = await Promise.all([
-    getKpis(),
+  const [portfolio, insights, collection] = await Promise.all([
     getPortfolio(),
     getInsights(),
     getCollectionTrend(),
   ]);
+  const kpis = await getKpis(portfolio); // derived from the already-fetched portfolio
+
+  // Dashboard shows the top slice; the full filterable list lives at /properties.
+  const TOP_N = 15;
+  const topProperties = [...portfolio]
+    .sort((a, b) => (b.wozValue ?? 0) - (a.wozValue ?? 0))
+    .slice(0, TOP_N);
 
   const mapPoints = portfolio
     .filter((p) => p.latitude && p.longitude)
@@ -84,15 +91,15 @@ export default async function DashboardPage() {
         <CollectionChart data={collection} expectedLabel={t.dashboard.expected} collectedLabel={t.dashboard.collected} />
       </section>
 
-      {/* All properties */}
+      {/* Top properties (full list at /properties) */}
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-700">{t.dashboard.allProperties}</h2>
-          <span className="text-xs text-slate-400">
-            {portfolio.length} {t.kpi.properties.toLowerCase()}
-          </span>
+          <Link href="/properties" className="text-xs font-medium text-brand-600 hover:underline">
+            {t.common.viewAll} ({portfolio.length}) →
+          </Link>
         </div>
-        <PropertyTable rows={portfolio} t={t} locale={locale} />
+        <PropertyTable rows={topProperties} t={t} locale={locale} />
       </section>
     </div>
   );

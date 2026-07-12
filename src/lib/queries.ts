@@ -153,8 +153,9 @@ export async function getPortfolio(): Promise<PropertyStats[]> {
   });
 }
 
-export async function getKpis(): Promise<PortfolioKpis> {
-  const portfolio = await getPortfolio();
+export async function getKpis(existingPortfolio?: PropertyStats[]): Promise<PortfolioKpis> {
+  // Reuse an already-fetched portfolio to avoid running the heavy query twice.
+  const portfolio = existingPortfolio ?? (await getPortfolio());
   const today = now();
   const sixMonths = new Date(today.getTime() + 183 * 24 * 60 * 60 * 1000);
 
