@@ -1,6 +1,8 @@
 import { generateChargesForPeriod } from "@/lib/charge-gen";
 import { getSession } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 // Monthly charge generation endpoint. Intended for a scheduler (Vercel Cron
 // with CRON_SECRET) — also callable by a logged-in staff session.
 export async function GET(request: Request) {

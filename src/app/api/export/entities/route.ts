@@ -1,6 +1,8 @@
 import { getEntityReport } from "@/lib/queries";
 import { getRole, can } from "@/lib/rbac";
 
+export const dynamic = "force-dynamic";
+
 // Streams the per-entity P&L report as CSV (for the accountant).
 export async function GET() {
   if (!can("exportData", getRole())) return new Response("Forbidden", { status: 403 });

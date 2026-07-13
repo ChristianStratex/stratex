@@ -1,6 +1,8 @@
 import { buildDigestHtml } from "@/lib/digest";
 import { getSession } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 // Preview of the weekly email digest. A scheduled job (Vercel Cron / Inngest)
 // will later POST this HTML to Resend/Postmark once an API key is configured.
 // Auth: a scheduler via CRON_SECRET, or a logged-in staff (non-tenant) session.

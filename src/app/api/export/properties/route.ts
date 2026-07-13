@@ -1,6 +1,9 @@
 import { getPortfolio } from "@/lib/queries";
 import { getRole, can } from "@/lib/rbac";
 
+// Reads the DB per request — never prerender at build time.
+export const dynamic = "force-dynamic";
+
 // Streams the portfolio as a CSV download (for the owner's accountant / records).
 export async function GET() {
   if (!can("exportData", getRole())) return new Response("Forbidden", { status: 403 });

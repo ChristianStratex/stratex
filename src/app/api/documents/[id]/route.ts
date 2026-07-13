@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { UPLOAD_DIR } from "@/lib/uploads";
 
+export const dynamic = "force-dynamic";
+
 // Streams a stored document. Staff only — documents are never exposed to the
 // tenant portal, so a TENANT session must not be able to fetch them by id.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
