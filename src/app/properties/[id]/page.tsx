@@ -20,7 +20,9 @@ import {
 import { NewIssueForm } from "@/components/NewIssueForm";
 import { MarkPaidButton, IssueStatusButtons } from "@/components/ActionButtons";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
+import { LeaseManager } from "@/components/LeaseManager";
 import { getRole, can } from "@/lib/rbac";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +31,18 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
   const role = getRole();
   const canPay = can("recordPayments", role);
   const canEdit = can("editIssues", role);
+  const canLeases = can("manageLeases", role);
   const detail = await getPropertyDetail(params.id);
   if (!detail) notFound();
   const { property: p, stats, charges } = detail;
+
+  // Data for the lease manager (only queried when the role can use it).
+  const tenantOptions = canLeases
+    ? await prisma.tenant.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+    : [];
+  const vacantUnits = p.units
+    .filter((u) => !u.leases.some((l) => l.status === "ACTIVE"))
+    .map((u) => ({ id: u.id, label: u.label }));
 
   const activeLeases = p.units.flatMap((u) =>
     u.leases.filter((l) => l.status === "ACTIVE").map((l) => ({ ...l, unitLabel: u.label })),
@@ -128,6 +139,16 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
               </table>
             </div>
           </section>
+
+          {canLeases && (
+            <LeaseManager
+              propertyId={p.id}
+              locale={locale}
+              tenants={tenantOptions}
+              vacantUnits={vacantUnits}
+              activeLeases={activeLeases.map((l) => ({ id: l.id, unit: l.unitLabel, tenant: l.tenant.name }))}
+            />
+          )}
 
           {/* Late payments */}
           <section className="card p-4">

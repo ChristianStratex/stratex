@@ -56,7 +56,7 @@ export function NewIssueForm({ propertyId, locale }: { propertyId: string; local
         <Select name="category" label={l.category} options={ISSUE_CATEGORY} labels={ISSUE_CATEGORY_LABELS} locale={locale} />
         <Select name="priority" label={l.priority} options={ISSUE_PRIORITY} labels={ISSUE_PRIORITY_LABELS} locale={locale} />
         <Select name="raisedBy" label={l.raisedBy} options={ISSUE_RAISED_BY} labels={ISSUE_RAISED_BY_LABELS} locale={locale} />
-        <input name="cost" type="number" min="0" step="50" placeholder={l.cost} className="rounded-md border border-slate-200 px-2 py-1.5 text-sm" />
+        <input name="cost" type="number" min="0" step="any" placeholder={l.cost} className="rounded-md border border-slate-200 px-2 py-1.5 text-sm" />
       </div>
       <div className="flex gap-2">
         <button type="submit" className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">
