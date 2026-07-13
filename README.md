@@ -1,5 +1,7 @@
 # StrateX — Commercial Real Estate Portfolio Dashboard
 
+![CI](https://github.com/ChristianStratex/stratex/actions/workflows/ci.yml/badge.svg)
+
 A dashboard for a commercial real-estate owner to track an entire portfolio in one
 place: **properties, tenants, rent, late payments, issues, redevelopment projects**, and
 the **tax structure** (personal vs. BV) — built to stay fast at hundreds of units.
