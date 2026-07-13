@@ -14,6 +14,7 @@ const icons = {
   tenants: "👤",
   bank: "🏦",
   reports: "📊",
+  alerts: "🔔",
   tax: "€",
 } as const;
 
@@ -37,6 +38,7 @@ export function Nav({
     ...(canBank
       ? [{ href: "/bank", label: t.nav.bank, icon: icons.bank, match: (p: string) => p.startsWith("/bank") }]
       : []),
+    { href: "/alerts", label: t.nav.alerts, icon: icons.alerts, match: (p: string) => p.startsWith("/alerts") },
     { href: "/reports", label: t.nav.reports, icon: icons.reports, match: (p: string) => p.startsWith("/reports") },
     ...(canViewTax
       ? [{ href: "/tax", label: t.nav.tax, icon: icons.tax, match: (p: string) => p.startsWith("/tax") }]
