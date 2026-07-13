@@ -42,7 +42,8 @@ Bilingual **Dutch / English**, EUR-native, designed around Dutch tax reality
 
 ```bash
 npm install            # installs deps and runs `prisma generate`
-npm run db:reset       # creates the SQLite schema and loads demo data
+# Point DATABASE_URL at a Postgres (see DEPLOY.md for a one-line Docker setup)
+npm run db:reset       # creates the schema and loads demo data
 npm run dev            # http://localhost:3000
 ```
 
@@ -101,7 +102,7 @@ src/
    existing reconciliation engine; optional Exact Online accounting sync.
 2. **Email delivery** — send the digest and alerts via Resend/Postmark.
 3. **CBS CPI feed** — auto-fill the indexation percentage.
-4. **PostgreSQL (EU) + object storage** for production; audit log; backups.
+4. **EU object storage** for documents (replace local disk); managed backups.
 
 ## Tax notes
 
