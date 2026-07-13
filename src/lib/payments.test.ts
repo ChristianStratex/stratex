@@ -48,3 +48,15 @@ test("aging bucket reflects days overdue", () => {
   assert.equal(deriveChargeState(charge(1000, "2026-04-20"), today).bucket, "61-90");
   assert.equal(deriveChargeState(charge(1000, "2026-01-20"), today).bucket, "90+");
 });
+
+test("partial payment on a not-yet-due charge is not arrears", () => {
+  const s = deriveChargeState(charge(1000, "2026-08-01", [200]), today); // future due
+  assert.equal(s.status, "PARTIAL");
+  assert.equal(s.isArrears, false);
+});
+
+test("partial payment on an overdue charge is arrears", () => {
+  const s = deriveChargeState(charge(1000, "2026-06-01", [200]), today); // past due
+  assert.equal(s.status, "PARTIAL");
+  assert.equal(s.isArrears, true);
+});

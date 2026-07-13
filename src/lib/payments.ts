@@ -38,6 +38,9 @@ export function deriveChargeState(charge: ChargeLike, today: Date): ChargeState 
   else if (overdueDays > 0) status = "LATE";
   else status = "OPEN";
 
-  const isArrears = status === "LATE" || status === "MISSING" || status === "PARTIAL";
+  // A partial payment only counts as arrears once the charge is actually
+  // overdue — paying early against a not-yet-due charge is not a shortfall.
+  const isArrears =
+    status === "LATE" || status === "MISSING" || (status === "PARTIAL" && overdueDays > 0);
   return { paid, outstanding, overdueDays, bucket: agingBucket(overdueDays), status, isArrears };
 }

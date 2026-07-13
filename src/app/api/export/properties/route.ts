@@ -1,7 +1,9 @@
 import { getPortfolio } from "@/lib/queries";
+import { getRole, can } from "@/lib/rbac";
 
 // Streams the portfolio as a CSV download (for the owner's accountant / records).
 export async function GET() {
+  if (!can("exportData", getRole())) return new Response("Forbidden", { status: 403 });
   const rows = await getPortfolio();
 
   const headers = [

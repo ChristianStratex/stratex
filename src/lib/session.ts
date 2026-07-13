@@ -16,9 +16,14 @@ export interface SessionPayload {
 }
 
 export function sessionSecret(): string {
-  // Demo fallback keeps the app runnable without configuration; production
-  // deployments must set AUTH_SECRET.
-  return process.env.AUTH_SECRET || "stratex-dev-secret-change-me";
+  const secret = process.env.AUTH_SECRET;
+  if (secret) return secret;
+  // Never allow the known default in production — an unset secret there would
+  // let anyone forge an OWNER session.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET must be set in production");
+  }
+  return "stratex-dev-secret-change-me";
 }
 
 function b64url(buf: Buffer): string {

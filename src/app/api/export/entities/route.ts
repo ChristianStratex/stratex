@@ -1,7 +1,9 @@
 import { getEntityReport } from "@/lib/queries";
+import { getRole, can } from "@/lib/rbac";
 
 // Streams the per-entity P&L report as CSV (for the accountant).
 export async function GET() {
+  if (!can("exportData", getRole())) return new Response("Forbidden", { status: 403 });
   const rows = await getEntityReport();
   const headers = [
     "Entity", "Type", "TaxRegime", "KvK", "Properties", "TotalWOZ", "TotalPurchase",

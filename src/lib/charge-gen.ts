@@ -22,10 +22,10 @@ export function periodStart(periodYm: string): Date {
 /** A lease owes rent for a period when it is active and the period overlaps its term. */
 export function leaseOwesForPeriod(lease: LeasePeriodLike, periodYm: string): boolean {
   if (lease.status !== "ACTIVE") return false;
-  const start = periodStart(periodYm);
-  const end = new Date(start.getFullYear(), start.getMonth() + 1, 0); // last day of month
-  if (lease.startDate > end) return false;
-  if (lease.endDate && lease.endDate < start) return false;
+  // Compare by year-month only, avoiding local-vs-UTC boundary bugs where a
+  // lease starting on the last day of a month could be wrongly skipped.
+  if (periodYmOf(lease.startDate) > periodYm) return false; // starts after this month
+  if (lease.endDate && periodYmOf(lease.endDate) < periodYm) return false; // ended before this month
   return true;
 }
 

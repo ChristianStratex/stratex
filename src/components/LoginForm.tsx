@@ -17,11 +17,12 @@ function SubmitButton({ label, busy }: { label: string; busy: string }) {
   );
 }
 
-export function LoginForm({ locale }: { locale: Locale }) {
+export function LoginForm({ locale, from }: { locale: Locale; from?: string }) {
   const [state, action] = useFormState<LoginState, FormData>(login, {});
   const nl = locale === "nl";
   return (
     <form action={action} className="space-y-3">
+      {from && <input type="hidden" name="from" value={from} />}
       <input
         name="email"
         type="email"

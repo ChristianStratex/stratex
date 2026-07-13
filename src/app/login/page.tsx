@@ -5,10 +5,11 @@ import { LoginForm } from "@/components/LoginForm";
 
 export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: { searchParams: { from?: string } }) {
   if (getSession()) redirect("/");
   const { locale, t } = getI18n();
   const nl = locale === "nl";
+  const from = typeof searchParams.from === "string" ? searchParams.from : undefined;
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4">
@@ -23,7 +24,7 @@ export default function LoginPage() {
           </div>
         </div>
         <div className="card p-6">
-          <LoginForm locale={locale} />
+          <LoginForm locale={locale} from={from} />
         </div>
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
           <div className="mb-1 font-semibold text-slate-600">{nl ? "Demo-accounts" : "Demo accounts"} (wachtwoord: demo2026)</div>

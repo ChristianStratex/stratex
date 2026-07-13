@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifySessionTokenEdge } from "@/lib/session-edge";
 
-const PUBLIC_PATHS = ["/login", "/api/locale"];
+// Public paths bypass the session gate. The cron/digest endpoints authenticate
+// themselves (CRON_SECRET or an in-handler staff-session check), so they must
+// not be redirected to /login by the middleware before their handler runs.
+const PUBLIC_PATHS = ["/login", "/api/locale", "/api/cron", "/api/digest"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

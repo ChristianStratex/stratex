@@ -63,18 +63,34 @@ export async function recordPayment(formData: FormData) {
   assertCan("recordPayments");
   const rentChargeId = String(formData.get("rentChargeId") ?? "");
   if (!rentChargeId) return;
-  const charge = await prisma.rentCharge.findUnique({
-    where: { id: rentChargeId },
-    include: { payments: true },
-  });
-  if (!charge) return;
-  const paid = charge.payments.reduce((s, p) => s + p.amount, 0);
-  const outstanding = Math.max(0, charge.amount - paid);
-  const requested = formData.get("amount") ? Number(formData.get("amount")) : outstanding;
-  const amount = Math.min(requested, outstanding) || outstanding;
 
-  await prisma.payment.create({
-    data: { rentChargeId, amount, receivedAt: new Date(), method: "MANUAL", reference: "Handmatig geregistreerd" },
+  const rawAmount = formData.get("amount");
+  // Explicit requested amount must be a positive number; otherwise pay the
+  // remaining balance. An invalid/zero/NaN entry is rejected, not silently
+  // treated as "pay everything".
+  let requested: number | null = null;
+  if (rawAmount != null && String(rawAmount).trim() !== "") {
+    const n = Number(rawAmount);
+    if (!Number.isFinite(n) || n <= 0) return; // invalid explicit amount
+    requested = n;
+  }
+
+  // Re-read outstanding inside a transaction so concurrent applies can't both
+  // over-pay the same charge (idempotent against double-click / retries).
+  await prisma.$transaction(async (tx) => {
+    const charge = await tx.rentCharge.findUnique({
+      where: { id: rentChargeId },
+      include: { payments: true },
+    });
+    if (!charge) return;
+    const paid = charge.payments.reduce((s, p) => s + p.amount, 0);
+    const outstanding = Math.max(0, charge.amount - paid);
+    if (outstanding <= 0.01) return; // already settled — no-op
+    const amount = requested != null ? Math.min(requested, outstanding) : outstanding;
+    if (amount <= 0) return;
+    await tx.payment.create({
+      data: { rentChargeId, amount, receivedAt: new Date(), method: "MANUAL", reference: "Handmatig geregistreerd" },
+    });
   });
   revalidatePath("/arrears");
   revalidatePath("/");
@@ -234,21 +250,26 @@ export async function applyReconciliation(
   let applied = 0;
   for (const m of matches) {
     if (!m.chargeId || !(m.amount > 0)) continue;
-    const charge = await prisma.rentCharge.findUnique({ where: { id: m.chargeId }, include: { payments: true } });
-    if (!charge) continue;
-    const paid = charge.payments.reduce((s, p) => s + p.amount, 0);
-    const outstanding = Math.max(0, charge.amount - paid);
-    if (outstanding <= 0.01) continue; // already settled meanwhile
-    await prisma.payment.create({
-      data: {
-        rentChargeId: m.chargeId,
-        amount: Math.min(m.amount, outstanding),
-        receivedAt: new Date(),
-        method: "BANK",
-        reference: m.reference?.slice(0, 140) || "Bankimport",
-      },
+    // Read outstanding and write the payment atomically so two concurrent
+    // applies (or apply + manual recordPayment) can't both over-pay a charge.
+    const didApply = await prisma.$transaction(async (tx) => {
+      const charge = await tx.rentCharge.findUnique({ where: { id: m.chargeId }, include: { payments: true } });
+      if (!charge) return false;
+      const paid = charge.payments.reduce((s, p) => s + p.amount, 0);
+      const outstanding = Math.max(0, charge.amount - paid);
+      if (outstanding <= 0.01) return false; // already settled meanwhile
+      await tx.payment.create({
+        data: {
+          rentChargeId: m.chargeId,
+          amount: Math.min(m.amount, outstanding),
+          receivedAt: new Date(),
+          method: "BANK",
+          reference: m.reference?.slice(0, 140) || "Bankimport",
+        },
+      });
+      return true;
     });
-    applied++;
+    if (didApply) applied++;
   }
   revalidatePath("/arrears");
   revalidatePath("/");

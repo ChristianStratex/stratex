@@ -26,7 +26,11 @@ export function IndexationPanel({
   const nl = locale === "nl";
   const router = useRouter();
   const [cpi, setCpi] = useState(3.0);
-  const [selected, setSelected] = useState<Set<string>>(new Set(candidates.map((c) => c.leaseId)));
+  // Only leases whose review date has passed can actually be applied; upcoming
+  // ones are shown for planning but start unselected.
+  const [selected, setSelected] = useState<Set<string>>(
+    new Set(candidates.filter((c) => c.overdue).map((c) => c.leaseId)),
+  );
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 

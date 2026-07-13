@@ -59,7 +59,18 @@ export async function applyIndexation(
   let annualUplift = 0;
   for (const id of leaseIds) {
     const lease = await prisma.lease.findUnique({ where: { id } });
-    if (!lease || !isIndexationDue(lease, now)) continue;
+    // Only apply once the review date has actually arrived. The candidate list
+    // surfaces leases up to 60 days ahead for planning, but applying early
+    // would raise rent (and the next generated charge) before it is due.
+    if (
+      !lease ||
+      lease.status !== "ACTIVE" ||
+      !lease.indexationClause ||
+      !lease.nextReviewDate ||
+      lease.nextReviewDate > now
+    ) {
+      continue;
+    }
     const p = computeIndexation(lease.monthlyRent, pct);
     const nextReview = new Date(lease.nextReviewDate as Date);
     nextReview.setFullYear(nextReview.getFullYear() + 1);

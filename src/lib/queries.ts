@@ -55,102 +55,115 @@ const now = () => new Date();
 /** Derive the paid amount and status of a rent charge (delegates to pure logic). */
 const chargeState = deriveChargeState;
 
+// Shared include shape for the stat computation, so a single property and the
+// whole portfolio load the exact same data and go through the same math.
+const STATS_INCLUDE = {
+  ownerEntity: true,
+  mortgages: true,
+  issues: { where: { status: { not: "RESOLVED" } } },
+  units: {
+    include: {
+      leases: {
+        include: { rentCharges: { include: { payments: true } } },
+      },
+    },
+  },
+} as const;
+
+type PropertyWithStatsData = Awaited<
+  ReturnType<typeof prisma.property.findFirstOrThrow<{ include: typeof STATS_INCLUDE }>>
+>;
+
+/** Compute derived stats for one loaded property. Pure given (p, today). */
+export function computePropertyStats(p: PropertyWithStatsData, today: Date): PropertyStats {
+  const activeLeases = p.units.flatMap((u) => u.leases.filter((l) => l.status === "ACTIVE"));
+  const monthlyIncome = activeLeases.reduce((s, l) => s + l.monthlyRent + l.serviceCharge, 0);
+  const mortgageCost = p.mortgages.reduce((s, m) => s + m.monthlyPayment, 0);
+  const monthlyCost = p.monthlyCost + mortgageCost;
+  const netCashflow = monthlyIncome - monthlyCost;
+
+  const unitCount = p.units.length;
+  const occupiedUnits = p.units.filter((u) => u.leases.some((l) => l.status === "ACTIVE")).length;
+  const occupancy = unitCount > 0 ? (occupiedUnits / unitCount) * 100 : 0;
+
+  let arrearsAmount = 0;
+  let arrearsCount = 0;
+  for (const u of p.units) {
+    for (const l of u.leases) {
+      for (const c of l.rentCharges) {
+        const st = chargeState(c, today);
+        if (st.isArrears) {
+          arrearsAmount += st.outstanding;
+          arrearsCount += 1;
+        }
+      }
+    }
+  }
+
+  const grossYield = p.wozValue ? (monthlyIncome * 12) / p.wozValue * 100 : null;
+  const netYield = p.wozValue ? (netCashflow * 12) / p.wozValue * 100 : null;
+
+  const indexDates = activeLeases
+    .map((l) => l.nextReviewDate)
+    .filter((d): d is Date => !!d)
+    .sort((a, b) => a.getTime() - b.getTime());
+  // Only future end dates matter for "next lease end" — a stale past date on
+  // one active lease must not mask a genuinely soon-expiring one.
+  const endDates = activeLeases
+    .map((l) => l.endDate)
+    .filter((d): d is Date => !!d && d >= today)
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  // Occupancy only informs health when the property actually has units and
+  // isn't sold/land — otherwise a 0-unit or SOLD property would false-alarm.
+  const occupancyMatters = unitCount > 0 && p.status !== "SOLD";
+  const health: PropertyStats["health"] =
+    arrearsCount > 0 || (occupancyMatters && occupancy < 50)
+      ? "critical"
+      : p.issues.length > 0 || (occupancyMatters && occupancy < 100)
+        ? "warning"
+        : "good";
+
+  return {
+    id: p.id,
+    name: p.name,
+    street: p.street,
+    postalCode: p.postalCode,
+    city: p.city,
+    type: p.type,
+    status: p.status,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    ownerName: p.ownerEntity.name,
+    ownerType: p.ownerEntity.type,
+    wozValue: p.wozValue,
+    purchasePrice: p.purchasePrice,
+    purchaseDate: p.purchaseDate,
+    monthlyIncome,
+    monthlyCost,
+    netCashflow,
+    grossYield,
+    netYield,
+    unitCount,
+    occupiedUnits,
+    occupancy,
+    openIssues: p.issues.length,
+    arrearsAmount,
+    arrearsCount,
+    health,
+    nextIndexation: indexDates[0] ?? null,
+    nextLeaseEnd: endDates[0] ?? null,
+  };
+}
+
 /** All properties with computed stats — powers the dashboard, map and table. */
 export async function getPortfolio(): Promise<PropertyStats[]> {
   const today = now();
   const properties = await prisma.property.findMany({
-    include: {
-      ownerEntity: true,
-      mortgages: true,
-      issues: { where: { status: { not: "RESOLVED" } } },
-      units: {
-        include: {
-          leases: {
-            include: { rentCharges: { include: { payments: true } } },
-          },
-        },
-      },
-    },
+    include: STATS_INCLUDE,
     orderBy: { name: "asc" },
   });
-
-  return properties.map((p) => {
-    const activeLeases = p.units.flatMap((u) => u.leases.filter((l) => l.status === "ACTIVE"));
-    const monthlyIncome = activeLeases.reduce((s, l) => s + l.monthlyRent + l.serviceCharge, 0);
-    const mortgageCost = p.mortgages.reduce((s, m) => s + m.monthlyPayment, 0);
-    const monthlyCost = p.monthlyCost + mortgageCost;
-    const netCashflow = monthlyIncome - monthlyCost;
-
-    const unitCount = p.units.length;
-    const occupiedUnits = p.units.filter((u) => u.leases.some((l) => l.status === "ACTIVE")).length;
-    const occupancy = unitCount > 0 ? (occupiedUnits / unitCount) * 100 : 0;
-
-    // Arrears across all charges of this property.
-    let arrearsAmount = 0;
-    let arrearsCount = 0;
-    for (const u of p.units) {
-      for (const l of u.leases) {
-        for (const c of l.rentCharges) {
-          const st = chargeState(c, today);
-          if (st.status === "LATE" || st.status === "MISSING" || st.status === "PARTIAL") {
-            arrearsAmount += st.outstanding;
-            arrearsCount += 1;
-          }
-        }
-      }
-    }
-
-    const grossYield = p.wozValue ? (monthlyIncome * 12) / p.wozValue * 100 : null;
-    const netYield = p.wozValue ? (netCashflow * 12) / p.wozValue * 100 : null;
-
-    // Next indexation & next lease end across active leases.
-    const indexDates = activeLeases
-      .map((l) => l.nextReviewDate)
-      .filter((d): d is Date => !!d)
-      .sort((a, b) => a.getTime() - b.getTime());
-    const endDates = activeLeases
-      .map((l) => l.endDate)
-      .filter((d): d is Date => !!d)
-      .sort((a, b) => a.getTime() - b.getTime());
-
-    const health: PropertyStats["health"] =
-      arrearsCount > 0 || occupancy < 50
-        ? "critical"
-        : p.issues.length > 0 || occupancy < 100
-          ? "warning"
-          : "good";
-
-    return {
-      id: p.id,
-      name: p.name,
-      street: p.street,
-      postalCode: p.postalCode,
-      city: p.city,
-      type: p.type,
-      status: p.status,
-      latitude: p.latitude,
-      longitude: p.longitude,
-      ownerName: p.ownerEntity.name,
-      ownerType: p.ownerEntity.type,
-      wozValue: p.wozValue,
-      purchasePrice: p.purchasePrice,
-      purchaseDate: p.purchaseDate,
-      monthlyIncome,
-      monthlyCost,
-      netCashflow,
-      grossYield,
-      netYield,
-      unitCount,
-      occupiedUnits,
-      occupancy,
-      openIssues: p.issues.length,
-      arrearsAmount,
-      arrearsCount,
-      health,
-      nextIndexation: indexDates[0] ?? null,
-      nextLeaseEnd: endDates[0] ?? null,
-    };
-  });
+  return properties.map((p) => computePropertyStats(p, today));
 }
 
 export async function getKpis(existingPortfolio?: PropertyStats[]): Promise<PortfolioKpis> {
@@ -273,7 +286,12 @@ export async function getPropertyDetail(id: string) {
   });
   if (!p) return null;
 
-  const stats = (await getPortfolio()).find((s) => s.id === id)!;
+  // Compute stats from this property's own already-loaded data (openIssues
+  // counts only unresolved), instead of loading the entire portfolio.
+  const stats = computePropertyStats(
+    { ...p, issues: p.issues.filter((i) => i.status !== "RESOLVED") } as unknown as PropertyWithStatsData,
+    today,
+  );
 
   // Flatten recent charges for a payments timeline.
   const charges = p.units.flatMap((u) =>

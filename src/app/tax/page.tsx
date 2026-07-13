@@ -14,8 +14,8 @@ export default function TaxPage() {
         </h1>
         <p className="mt-1 text-sm text-slate-500">
           {locale === "nl"
-            ? `De rol "${ROLE_LABELS[role].nl}" heeft geen toegang tot de fiscale module. Wissel naar Eigenaar of Accountant.`
-            : `The "${ROLE_LABELS[role].en}" role cannot access the tax module. Switch to Owner or Accountant.`}
+            ? `De rol "${ROLE_LABELS[role].nl}" heeft geen toegang tot de fiscale module. Neem contact op met de eigenaar of beheerder.`
+            : `The "${ROLE_LABELS[role].en}" role cannot access the tax module. Contact the owner or an administrator.`}
         </p>
       </div>
     );

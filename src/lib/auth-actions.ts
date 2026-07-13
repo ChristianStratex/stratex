@@ -29,11 +29,15 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   });
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_TTL_S,
   });
-  redirect(user.role === "TENANT" ? "/portal" : "/");
+  // Honour the return path the middleware captured for deep links.
+  const from = String(formData.get("from") ?? "");
+  const safeFrom = from.startsWith("/") && !from.startsWith("//") && !from.startsWith("/login") ? from : null;
+  redirect(user.role === "TENANT" ? "/portal" : (safeFrom ?? "/"));
 }
 
 export async function logout() {

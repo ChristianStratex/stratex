@@ -37,3 +37,7 @@ test("lease ending mid-month still owes for that month", () => {
 test("inactive lease never owes", () => {
   assert.ok(!leaseOwesForPeriod(lease({ status: "ENDED" }), "2026-07"));
 });
+
+test("lease starting on the last day of the month still owes (no TZ skip)", () => {
+  assert.ok(leaseOwesForPeriod(lease({ startDate: new Date("2026-07-31T00:00:00Z") }), "2026-07"));
+});
