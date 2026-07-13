@@ -72,14 +72,34 @@ src/
   i18n/                # NL/EN dictionaries + locale helper
 ```
 
+## Also included
+
+- **Authentication & RBAC** — password login (scrypt + signed HMAC sessions, middleware
+  gating), roles: owner / manager / accountant / assistant / viewer / tenant. Demo
+  accounts on the login page (password `demo2026`).
+- **Tenant portal** — tenants log in and see only their own leases, charge/payment
+  history and issues, and can submit new issues (server-verified to their own
+  properties). Staff and tenants are isolated both ways in the middleware.
+- **Alerts center** — severity-ranked action list (arrears scale with amount, expiries
+  with proximity) + high-priority tenant issues.
+- **Rent indexation** — CPI-based proposals per lease with batch apply; rents, review
+  dates and audit stamps updated automatically.
+- **Monthly charge generation** — idempotent generator for each month's rent charges
+  (staff button on Bank & collection, or `/api/cron/generate-charges` with
+  `Authorization: Bearer $CRON_SECRET` for a scheduler).
+- **Documents** — leases/deeds/permits per property (10 MB, RBAC-gated, authenticated
+  downloads).
+- **Per-entity P&L report** + CSV exports; **weekly digest** preview at `/api/digest`.
+- **Scale**: `npm run db:seed:large` loads a 300-property portfolio; dashboard renders
+  in ~0.4 s.
+
 ## Roadmap (next)
 
-1. **Auth + RBAC** — owner / manager / accountant / assistant roles.
-2. **Bank feed (PSD2)** — GoCardless Bank Account Data to auto-match rent and flag late
-   payments; optional Exact Online accounting sync.
-3. **CSV/Excel import** for bulk-loading an existing portfolio.
-4. **Alerts** — indexation-due, lease-expiry, vacancy and arrears notifications by email.
-5. **Move to PostgreSQL (EU)** for production; document storage for leases/deeds.
+1. **GoCardless (PSD2) bank feed** — automatic nightly transaction sync into the
+   existing reconciliation engine; optional Exact Online accounting sync.
+2. **Email delivery** — send the digest and alerts via Resend/Postmark.
+3. **CBS CPI feed** — auto-fill the indexation percentage.
+4. **PostgreSQL (EU) + object storage** for production; audit log; backups.
 
 ## Tax notes
 
