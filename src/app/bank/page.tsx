@@ -1,6 +1,7 @@
 import { getI18n } from "@/i18n";
 import { getRole, can } from "@/lib/rbac";
 import { ReconcilePanel } from "@/components/ReconcilePanel";
+import { GenerateChargesButton } from "@/components/GenerateChargesButton";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export default function BankPage() {
         <h1 className="text-2xl font-bold text-slate-900">{t.bank.title}</h1>
         <p className="text-sm text-slate-500">{t.bank.subtitle}</p>
       </header>
+      <GenerateChargesButton locale={locale} />
       <ReconcilePanel locale={locale} />
     </div>
   );

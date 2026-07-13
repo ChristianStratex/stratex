@@ -178,6 +178,19 @@ export async function importProperties(csv: string): Promise<ImportResult> {
   return result;
 }
 
+// --- Monthly charge generation ---
+
+/** Ensure this month's rent charges exist for all active leases (idempotent). */
+export async function generateCharges(): Promise<{ periodYm: string; created: number; existing: number }> {
+  assertCan("recordPayments");
+  const { generateChargesForPeriod } = await import("./charge-gen");
+  const result = await generateChargesForPeriod();
+  revalidatePath("/");
+  revalidatePath("/arrears");
+  revalidatePath("/bank");
+  return result;
+}
+
 // --- Bank reconciliation ---
 
 /**
