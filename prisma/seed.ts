@@ -49,6 +49,7 @@ async function main() {
       { name: "Kijker", email: "viewer@example.nl", role: "VIEWER", locale: "nl", passwordHash: DEMO_PASSWORD },
     ],
   });
+  // A tenant portal account is linked after tenants are created (below).
 
   // --- Legal entities (the ownership layer that drives the tax module) ---
   const personal = await prisma.legalEntity.create({
@@ -87,6 +88,18 @@ async function main() {
       }),
     ),
   );
+
+  // Tenant portal demo account, linked to the first tenant.
+  await prisma.user.create({
+    data: {
+      name: tenants[0].name,
+      email: "huurder@example.nl",
+      role: "TENANT",
+      locale: "nl",
+      passwordHash: DEMO_PASSWORD,
+      tenantId: tenants[0].id,
+    },
+  });
 
   // --- Property templates (synthetic, realistic Friesland geography) ---
   type Tmpl = {

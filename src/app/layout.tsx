@@ -51,7 +51,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div className="text-[10px] text-slate-400">{t.tagline}</div>
               </div>
             </Link>
-            <Nav t={t} canViewTax={canViewTax} canBank={canBank} />
+            {role === "TENANT" ? (
+              <nav className="flex flex-col gap-1">
+                <Link href="/portal" className="nav-link nav-link-active">
+                  <span className="w-5 text-center text-base leading-none">🏠</span>
+                  <span>{locale === "nl" ? "Mijn portaal" : "My portal"}</span>
+                </Link>
+              </nav>
+            ) : (
+              <Nav t={t} canViewTax={canViewTax} canBank={canBank} />
+            )}
             <div className="mt-auto space-y-3 pt-4">
               {/* Logged-in user */}
               <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1.5">

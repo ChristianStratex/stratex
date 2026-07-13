@@ -10,13 +10,20 @@ function b64urlToBytes(s: string): Uint8Array {
   return out;
 }
 
+export interface EdgeSessionPayload {
+  uid: string;
+  name: string;
+  role: string;
+  exp: number;
+}
+
 export async function verifySessionTokenEdge(
   token: string | undefined,
   secret: string,
-): Promise<boolean> {
-  if (!token) return false;
+): Promise<EdgeSessionPayload | null> {
+  if (!token) return null;
   const [body, mac] = token.split(".");
-  if (!body || !mac) return false;
+  if (!body || !mac) return null;
   try {
     const key = await crypto.subtle.importKey(
       "raw",
@@ -31,10 +38,10 @@ export async function verifySessionTokenEdge(
       b64urlToBytes(mac) as unknown as BufferSource,
       new TextEncoder().encode(body) as unknown as BufferSource,
     );
-    if (!ok) return false;
-    const payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(body)));
-    return !!payload.uid && payload.exp > Date.now() / 1000;
+    if (!ok) return null;
+    const payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(body))) as EdgeSessionPayload;
+    return payload.uid && payload.exp > Date.now() / 1000 ? payload : null;
   } catch {
-    return false;
+    return null;
   }
 }

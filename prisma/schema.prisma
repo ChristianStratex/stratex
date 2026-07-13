@@ -27,13 +27,16 @@ model LegalEntity {
 }
 
 /// A user of the app with a role (RBAC) and password login.
+/// TENANT users are linked to a Tenant and only see their own portal.
 model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
   passwordHash String? // scrypt: salt$hash (hex); null = login disabled
-  role         String   @default("VIEWER") // OWNER | MANAGER | ACCOUNTANT | ASSISTANT | VIEWER
+  role         String   @default("VIEWER") // OWNER | MANAGER | ACCOUNTANT | ASSISTANT | VIEWER | TENANT
   locale       String   @default("nl") // nl | en
+  tenantId     String?
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
   createdAt    DateTime @default(now())
 }
 
@@ -93,6 +96,7 @@ model Tenant {
   phone     String?
   kvkNumber String?
   leases    Lease[]
+  users     User[]
   createdAt DateTime @default(now())
 }
 

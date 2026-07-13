@@ -33,7 +33,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     path: "/",
     maxAge: SESSION_TTL_S,
   });
-  redirect("/");
+  redirect(user.role === "TENANT" ? "/portal" : "/");
 }
 
 export async function logout() {

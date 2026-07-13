@@ -9,7 +9,19 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get("stratex_session")?.value;
   const secret = process.env.AUTH_SECRET || "stratex-dev-secret-change-me";
-  if (await verifySessionTokenEdge(token, secret)) return NextResponse.next();
+  const session = await verifySessionTokenEdge(token, secret);
+
+  if (session) {
+    // Tenants only get their own portal (plus locale switching, handled above).
+    if (session.role === "TENANT" && !pathname.startsWith("/portal")) {
+      return NextResponse.redirect(new URL("/portal", request.url));
+    }
+    // Staff have no business on the tenant portal.
+    if (session.role !== "TENANT" && pathname.startsWith("/portal")) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
 
   const login = new URL("/login", request.url);
   if (pathname !== "/") login.searchParams.set("from", pathname);

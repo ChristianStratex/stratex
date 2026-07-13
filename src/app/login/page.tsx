@@ -32,6 +32,7 @@ export default function LoginPage() {
             <li>manager@example.nl — {nl ? "Beheerder" : "Manager"}</li>
             <li>boekhouding@example.nl — Accountant</li>
             <li>viewer@example.nl — {nl ? "Alleen-lezen" : "View-only"}</li>
+            <li>huurder@example.nl — {nl ? "Huurdersportaal" : "Tenant portal"}</li>
           </ul>
         </div>
       </div>

@@ -1,10 +1,10 @@
 // Client-safe RBAC definitions (no next/headers import, so this can be used in
 // client components). Server-only getRole() lives in rbac.ts.
 
-export type Role = "OWNER" | "MANAGER" | "ACCOUNTANT" | "ASSISTANT" | "VIEWER";
+export type Role = "OWNER" | "MANAGER" | "ACCOUNTANT" | "ASSISTANT" | "VIEWER" | "TENANT";
 export const ROLE_COOKIE = "stratex_role";
-export const DEFAULT_ROLE: Role = "OWNER";
-export const ALL_ROLES: Role[] = ["OWNER", "MANAGER", "ACCOUNTANT", "ASSISTANT", "VIEWER"];
+export const DEFAULT_ROLE: Role = "VIEWER";
+export const ALL_ROLES: Role[] = ["OWNER", "MANAGER", "ACCOUNTANT", "ASSISTANT", "VIEWER", "TENANT"];
 
 export type Capability =
   | "recordPayments"
@@ -34,4 +34,5 @@ export const ROLE_LABELS: Record<Role, { nl: string; en: string }> = {
   ACCOUNTANT: { nl: "Accountant", en: "Accountant" },
   ASSISTANT: { nl: "Assistent", en: "Assistant" },
   VIEWER: { nl: "Alleen-lezen", en: "Viewer" },
+  TENANT: { nl: "Huurder", en: "Tenant" },
 };
