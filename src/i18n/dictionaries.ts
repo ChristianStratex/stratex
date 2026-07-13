@@ -17,6 +17,7 @@ const dictionaries = {
       alerts: "Alerts",
       indexation: "Indexatie",
       tax: "Fiscale structuur",
+      settings: "Instellingen",
     },
     alerts: {
       title: "Alerts",
@@ -198,6 +199,7 @@ const dictionaries = {
       alerts: "Alerts",
       indexation: "Indexation",
       tax: "Tax structure",
+      settings: "Settings",
     },
     alerts: {
       title: "Alerts",

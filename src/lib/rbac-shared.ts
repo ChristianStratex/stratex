@@ -12,7 +12,8 @@ export type Capability =
   | "viewTax"
   | "exportData"
   | "importData"
-  | "manageLeases";
+  | "manageLeases"
+  | "admin";
 
 // Permission matrix — which roles hold which capability.
 const MATRIX: Record<Capability, Role[]> = {
@@ -22,6 +23,7 @@ const MATRIX: Record<Capability, Role[]> = {
   exportData: ["OWNER", "MANAGER", "ACCOUNTANT"],
   importData: ["OWNER", "MANAGER"],
   manageLeases: ["OWNER", "MANAGER"],
+  admin: ["OWNER"],
 };
 
 export function can(capability: Capability, role: Role): boolean {

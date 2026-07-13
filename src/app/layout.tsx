@@ -34,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const role = getRole();
   const canViewTax = can("viewTax", role);
   const canBank = can("recordPayments", role);
+  const canAdmin = can("admin", role);
 
   return (
     <html lang={locale}>
@@ -59,7 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
               </nav>
             ) : (
-              <Nav t={t} canViewTax={canViewTax} canBank={canBank} />
+              <Nav t={t} canViewTax={canViewTax} canBank={canBank} canAdmin={canAdmin} />
             )}
             <div className="mt-auto space-y-3 pt-4">
               {/* Logged-in user */}

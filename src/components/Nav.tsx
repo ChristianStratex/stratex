@@ -17,16 +17,19 @@ const icons = {
   alerts: "🔔",
   indexation: "📈",
   tax: "€",
+  settings: "⚙",
 } as const;
 
 export function Nav({
   t,
   canViewTax = true,
   canBank = true,
+  canAdmin = false,
 }: {
   t: Dictionary;
   canViewTax?: boolean;
   canBank?: boolean;
+  canAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const items = [
@@ -44,6 +47,9 @@ export function Nav({
     { href: "/reports", label: t.nav.reports, icon: icons.reports, match: (p: string) => p.startsWith("/reports") },
     ...(canViewTax
       ? [{ href: "/tax", label: t.nav.tax, icon: icons.tax, match: (p: string) => p.startsWith("/tax") }]
+      : []),
+    ...(canAdmin
+      ? [{ href: "/settings", label: t.nav.settings, icon: icons.settings, match: (p: string) => p.startsWith("/settings") }]
       : []),
   ];
   return (
