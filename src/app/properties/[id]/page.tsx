@@ -19,6 +19,7 @@ import {
 } from "@/lib/enums";
 import { NewIssueForm } from "@/components/NewIssueForm";
 import { MarkPaidButton, IssueStatusButtons } from "@/components/ActionButtons";
+import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { getRole, can } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
@@ -207,6 +208,20 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
             <h2 className="mb-2 text-sm font-semibold text-slate-700">{t.property.wozValue}</h2>
             <ValuationChart data={valuationData} />
           </section>
+
+          <DocumentsPanel
+            propertyId={p.id}
+            canEdit={canEdit}
+            locale={locale}
+            docs={p.documents.map((d) => ({
+              id: d.id,
+              name: d.name,
+              kind: d.kind,
+              size: d.size,
+              createdAt: d.createdAt.toISOString(),
+              uploadedBy: d.uploadedBy,
+            }))}
+          />
 
           {p.mortgages.length > 0 && (
             <section className="card p-4">

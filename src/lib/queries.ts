@@ -257,6 +257,7 @@ export async function getPropertyDetail(id: string) {
       mortgages: true,
       valuations: { orderBy: { date: "asc" } },
       projects: true,
+      documents: { orderBy: { createdAt: "desc" } },
       issues: { orderBy: { createdAt: "desc" } },
       units: {
         include: {

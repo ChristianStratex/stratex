@@ -33,3 +33,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# uploaded documents (local dev storage)
+/var/uploads/
+var/

@@ -64,6 +64,7 @@ model Property {
   projects    Project[]
   mortgages   Mortgage[]
   valuations  Valuation[]
+  documents   Document[]
 
   createdAt   DateTime @default(now())
 
@@ -194,6 +195,24 @@ model Mortgage {
   monthlyPayment Float // total monthly (interest + amortisation)
   startDate     DateTime?
   endDate       DateTime?
+
+  @@index([propertyId])
+}
+
+/// A document attached to a property (lease, deed, permit, …).
+/// Dev stores files on local disk (var/uploads, gitignored); production target
+/// is EU object storage — only the storage adapter changes.
+model Document {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name       String // original filename shown to users
+  kind       String   @default("OTHER") // LEASE | DEED | PERMIT | INVOICE | OTHER
+  storedAs   String // random name on disk
+  size       Int
+  mimeType   String
+  uploadedBy String?
+  createdAt  DateTime @default(now())
 
   @@index([propertyId])
 }
