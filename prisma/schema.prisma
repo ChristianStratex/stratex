@@ -26,14 +26,15 @@ model LegalEntity {
   properties Property[]
 }
 
-/// A user of the app with a role (RBAC).
+/// A user of the app with a role (RBAC) and password login.
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  role      String   @default("VIEWER") // OWNER | MANAGER | ACCOUNTANT | ASSISTANT | VIEWER
-  locale    String   @default("nl") // nl | en
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String? // scrypt: salt$hash (hex); null = login disabled
+  role         String   @default("VIEWER") // OWNER | MANAGER | ACCOUNTANT | ASSISTANT | VIEWER
+  locale       String   @default("nl") // nl | en
+  createdAt    DateTime @default(now())
 }
 
 /// A physical property / building.

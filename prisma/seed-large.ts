@@ -8,8 +8,10 @@
  * Run: npm run db:seed:large
  */
 import { PrismaClient } from "@prisma/client";
+import { hashPassword } from "../src/lib/password";
 
 const prisma = new PrismaClient();
+const DEMO_PASSWORD = hashPassword("demo2026");
 
 const PROPERTY_COUNT = 300;
 const MONTHS_HISTORY = 3;
@@ -97,9 +99,10 @@ async function main() {
 
   await prisma.user.createMany({
     data: [
-      { name: "Demo Eigenaar", email: "owner@example.nl", role: "OWNER", locale: "nl" },
-      { name: "Portfolio Manager", email: "manager@example.nl", role: "MANAGER", locale: "nl" },
-      { name: "Accountant", email: "boekhouding@example.nl", role: "ACCOUNTANT", locale: "nl" },
+      { name: "Demo Eigenaar", email: "owner@example.nl", role: "OWNER", locale: "nl", passwordHash: DEMO_PASSWORD },
+      { name: "Portfolio Manager", email: "manager@example.nl", role: "MANAGER", locale: "nl", passwordHash: DEMO_PASSWORD },
+      { name: "Accountant", email: "boekhouding@example.nl", role: "ACCOUNTANT", locale: "nl", passwordHash: DEMO_PASSWORD },
+      { name: "Kijker", email: "viewer@example.nl", role: "VIEWER", locale: "nl", passwordHash: DEMO_PASSWORD },
     ],
   });
 

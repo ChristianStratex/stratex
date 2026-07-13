@@ -3,10 +3,11 @@ import Link from "next/link";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { getI18n } from "@/i18n";
-import { getRole, can } from "@/lib/rbac";
+import { getRole, can, ROLE_LABELS } from "@/lib/rbac";
+import { getSession } from "@/lib/session";
+import { logout } from "@/lib/auth-actions";
 import { Nav } from "@/components/Nav";
 import { LocaleToggle } from "@/components/LocaleToggle";
-import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { DemoBanner } from "@/components/DemoBanner";
 
 export const metadata: Metadata = {
@@ -16,9 +17,24 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale, t } = getI18n();
+  const session = getSession();
+
+  // Unauthenticated (i.e. the /login page): bare shell without the app chrome.
+  if (!session) {
+    return (
+      <html lang={locale}>
+        <body>
+          <DemoBanner locale={locale} />
+          {children}
+        </body>
+      </html>
+    );
+  }
+
   const role = getRole();
   const canViewTax = can("viewTax", role);
   const canBank = can("recordPayments", role);
+
   return (
     <html lang={locale}>
       <body>
@@ -37,8 +53,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <Nav t={t} canViewTax={canViewTax} canBank={canBank} />
             <div className="mt-auto space-y-3 pt-4">
-              <div className="px-2">
-                <RoleSwitcher role={role} locale={locale} />
+              {/* Logged-in user */}
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-700">
+                  {session.name.slice(0, 1).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <div className="truncate text-xs font-semibold text-slate-700">{session.name}</div>
+                  <div className="text-[10px] text-slate-400">{ROLE_LABELS[role][locale]}</div>
+                </div>
+                <form action={logout}>
+                  <button
+                    type="submit"
+                    title={locale === "nl" ? "Uitloggen" : "Sign out"}
+                    className="text-xs text-slate-400 transition hover:text-red-600"
+                  >
+                    ⎋
+                  </button>
+                </form>
               </div>
               <div>
                 <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
