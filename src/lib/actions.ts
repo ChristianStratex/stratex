@@ -6,6 +6,7 @@ import { ISSUE_CATEGORY, ISSUE_PRIORITY, ISSUE_RAISED_BY, ISSUE_STATUS, PROPERTY
 import { getRole, can, type Capability } from "./rbac";
 import { parseCsvLine } from "./csv";
 import { cityCoords } from "./geo";
+import { audit } from "./audit";
 import { parseBankCsv, matchTransactions, type MatchProposal, type OpenChargeLite } from "./reconcile";
 import { deriveChargeState } from "./payments";
 
@@ -77,21 +78,23 @@ export async function recordPayment(formData: FormData) {
 
   // Re-read outstanding inside a transaction so concurrent applies can't both
   // over-pay the same charge (idempotent against double-click / retries).
-  await prisma.$transaction(async (tx) => {
+  const paidAmount = await prisma.$transaction(async (tx) => {
     const charge = await tx.rentCharge.findUnique({
       where: { id: rentChargeId },
       include: { payments: true },
     });
-    if (!charge) return;
+    if (!charge) return 0;
     const paid = charge.payments.reduce((s, p) => s + p.amount, 0);
     const outstanding = Math.max(0, charge.amount - paid);
-    if (outstanding <= 0.01) return; // already settled — no-op
+    if (outstanding <= 0.01) return 0; // already settled — no-op
     const amount = requested != null ? Math.min(requested, outstanding) : outstanding;
-    if (amount <= 0) return;
+    if (amount <= 0) return 0;
     await tx.payment.create({
       data: { rentChargeId, amount, receivedAt: new Date(), method: "MANUAL", reference: "Handmatig geregistreerd" },
     });
+    return amount;
   });
+  if (paidAmount > 0) await audit("PAYMENT_RECORDED", `Manual payment €${Math.round(paidAmount)} on charge ${rentChargeId}`);
   revalidatePath("/arrears");
   revalidatePath("/");
 }
@@ -189,6 +192,7 @@ export async function importProperties(csv: string): Promise<ImportResult> {
     }
   }
 
+  if (result.created > 0) await audit("PROPERTIES_IMPORTED", `${result.created} property(ies) imported via CSV`);
   revalidatePath("/properties");
   revalidatePath("/");
   return result;
@@ -201,6 +205,7 @@ export async function generateCharges(): Promise<{ periodYm: string; created: nu
   assertCan("recordPayments");
   const { generateChargesForPeriod } = await import("./charge-gen");
   const result = await generateChargesForPeriod();
+  if (result.created > 0) await audit("CHARGES_GENERATED", `${result.created} charge(s) generated for ${result.periodYm}`);
   revalidatePath("/");
   revalidatePath("/arrears");
   revalidatePath("/bank");
@@ -271,6 +276,7 @@ export async function applyReconciliation(
     });
     if (didApply) applied++;
   }
+  if (applied > 0) await audit("RECONCILIATION_APPLIED", `${applied} bank payment(s) matched and applied`);
   revalidatePath("/arrears");
   revalidatePath("/");
   return { applied };

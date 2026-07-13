@@ -23,13 +23,14 @@ export default async function SettingsPage() {
     );
   }
 
-  const [users, tenants, entities] = await Promise.all([
+  const [users, tenants, entities, auditLog] = await Promise.all([
     prisma.user.findMany({ include: { tenant: true }, orderBy: { createdAt: "asc" } }),
     prisma.tenant.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.legalEntity.findMany({
       orderBy: { name: "asc" },
       include: { _count: { select: { properties: true } } },
     }),
+    prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 30 }),
   ]);
 
   return (
@@ -65,6 +66,27 @@ export default async function SettingsPage() {
           propertyCount: e._count.properties,
         }))}
       />
+
+      <section className="card p-4">
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">{nl ? "Auditlogboek" : "Audit log"}</h2>
+        {auditLog.length === 0 ? (
+          <p className="text-sm text-slate-400">{nl ? "Nog geen activiteit." : "No activity yet."}</p>
+        ) : (
+          <ul className="divide-y divide-slate-50 text-sm">
+            {auditLog.map((a) => (
+              <li key={a.id} className="flex flex-wrap items-baseline justify-between gap-x-3 py-1.5">
+                <span className="text-slate-700">
+                  <span className="mr-2 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">{a.action}</span>
+                  {a.detail}
+                </span>
+                <span className="text-xs text-slate-400">
+                  {a.actorName} · {a.createdAt.toLocaleString(nl ? "nl-NL" : "en-GB")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

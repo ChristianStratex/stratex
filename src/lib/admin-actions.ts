@@ -6,6 +6,7 @@ import { getRole, can, ALL_ROLES, type Role } from "./rbac";
 import { hashPassword } from "./password";
 import { ENTITY_TYPES } from "./enums";
 import { getSession } from "./session";
+import { audit } from "./audit";
 
 function assertAdmin() {
   if (!can("admin", getRole())) throw new Error("Not permitted: admin");
@@ -34,6 +35,7 @@ export async function createUser(formData: FormData): Promise<{ error?: string }
       tenantId: role === "TENANT" ? tenantId : null,
     },
   });
+  await audit("USER_CREATED", `Created ${role} user ${email}`);
   revalidatePath("/settings");
   return {};
 }
@@ -53,7 +55,9 @@ export async function deleteUser(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   // An owner may not delete their own account (avoid locking out admin).
   if (id === getSession()?.uid) return;
+  const u = await prisma.user.findUnique({ where: { id } });
   await prisma.user.delete({ where: { id } }).catch(() => {});
+  if (u) await audit("USER_DELETED", `Deleted user ${u.email}`);
   revalidatePath("/settings");
 }
 
@@ -71,8 +75,10 @@ export async function upsertEntity(formData: FormData): Promise<{ error?: string
 
   if (id) {
     await prisma.legalEntity.update({ where: { id }, data: { name, type, kvkNumber, taxRegime } });
+    await audit("ENTITY_UPDATED", `Updated entity ${name}`);
   } else {
     await prisma.legalEntity.create({ data: { name, type, kvkNumber, taxRegime } });
+    await audit("ENTITY_CREATED", `Created ${type} entity ${name}`);
   }
   revalidatePath("/settings");
   revalidatePath("/reports");

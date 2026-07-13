@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "./db";
 import { getRole, can } from "./rbac";
 import { computeIndexation, isIndexationDue } from "./indexation";
+import { audit } from "./audit";
 
 function assertLeases() {
   if (!can("manageLeases", getRole())) throw new Error("Not permitted: manageLeases");
@@ -81,7 +82,9 @@ export async function applyIndexation(
     applied++;
     annualUplift += p.annualDelta;
   }
+  const roundedUplift = Math.round(annualUplift * 100) / 100;
+  if (applied > 0) await audit("INDEXATION_APPLIED", `${applied} lease(s) indexed at ${pct}% — +€${Math.round(roundedUplift)}/yr`);
   revalidatePath("/indexation");
   revalidatePath("/");
-  return { applied, annualUplift: Math.round(annualUplift * 100) / 100 };
+  return { applied, annualUplift: roundedUplift };
 }
