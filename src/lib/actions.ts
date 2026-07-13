@@ -5,6 +5,7 @@ import { prisma } from "./db";
 import { ISSUE_CATEGORY, ISSUE_PRIORITY, ISSUE_RAISED_BY, ISSUE_STATUS, PROPERTY_TYPES, ENTITY_TYPES } from "./enums";
 import { getRole, can, type Capability } from "./rbac";
 import { parseCsvLine } from "./csv";
+import { cityCoords } from "./geo";
 import { parseBankCsv, matchTransactions, type MatchProposal, type OpenChargeLite } from "./reconcile";
 import { deriveChargeState } from "./payments";
 
@@ -103,7 +104,7 @@ export async function importProperties(csv: string): Promise<ImportResult> {
 
   const header = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
   const idx = (name: string) => header.indexOf(name.toLowerCase());
-  const col = { name: idx("name"), street: idx("street"), postal: idx("postalcode"), city: idx("city"), type: idx("type"), owner: idx("owner"), ownerType: idx("ownertype"), woz: idx("wozvalue"), purchase: idx("purchaseprice"), cost: idx("monthlycost") };
+  const col = { name: idx("name"), street: idx("street"), postal: idx("postalcode"), city: idx("city"), type: idx("type"), owner: idx("owner"), ownerType: idx("ownertype"), woz: idx("wozvalue"), purchase: idx("purchaseprice"), cost: idx("monthlycost"), lat: idx("latitude"), lng: idx("longitude"), kadaster: idx("kadasterref") };
   if (col.name < 0 || col.city < 0) {
     result.errors.push("CSV must include at least 'Name' and 'City' columns.");
     return result;
@@ -139,17 +140,30 @@ export async function importProperties(csv: string): Promise<ImportResult> {
       }
       const type = (col.type >= 0 && cells[col.type]) || "OFFICE";
       const num = (v: string | undefined) => (v && !Number.isNaN(Number(v)) ? Number(v) : null);
+      const street = (col.street >= 0 && cells[col.street]) || "";
+      // Coordinates: explicit Latitude/Longitude columns win; otherwise
+      // approximate from the city (deterministic jitter) so map pins work.
+      let latitude = col.lat >= 0 ? num(cells[col.lat]) : null;
+      let longitude = col.lng >= 0 ? num(cells[col.lng]) : null;
+      if (latitude == null || longitude == null) {
+        const approx = cityCoords(city, `${street}|${name}`);
+        latitude = approx?.lat ?? null;
+        longitude = approx?.lng ?? null;
+      }
       await prisma.property.create({
         data: {
           name,
-          street: (col.street >= 0 && cells[col.street]) || "",
+          street,
           postalCode: (col.postal >= 0 && cells[col.postal]) || "",
           city,
+          latitude,
+          longitude,
           type: (PROPERTY_TYPES as readonly string[]).includes(type) ? type : "OFFICE",
           ownerEntityId: ownerId,
           wozValue: num(cells[col.woz]),
           purchasePrice: num(cells[col.purchase]),
           monthlyCost: num(cells[col.cost]) ?? 0,
+          kadasterRef: (col.kadaster >= 0 && cells[col.kadaster]) || null,
         },
       });
       result.created++;
