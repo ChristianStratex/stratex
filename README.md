@@ -34,7 +34,7 @@ Bilingual **Dutch / English**, EUR-native, designed around Dutch tax reality
 
 - **Next.js 14** (App Router) + **React 18** + **TypeScript**
 - **Tailwind CSS** for styling
-- **Prisma** ORM — **SQLite** for local dev/demo, **PostgreSQL** (EU region) for production
+- **Prisma** ORM on **PostgreSQL** (works on Vercel serverless; see DEPLOY.md)
 - **Recharts** (charts) + **React-Leaflet** (map)
 - Lightweight cookie-based **NL/EN** i18n
 

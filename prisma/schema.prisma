@@ -1,15 +1,14 @@
 // StrateX — commercial real estate portfolio schema.
-// Dev/demo uses SQLite for portability; production target is PostgreSQL (EU region).
-// Enum-like fields are stored as String with allowed values documented inline,
-// because SQLite does not support native enums. Values are validated in app code
-// (see src/lib/enums.ts).
+// PostgreSQL (works on Vercel/serverless; SQLite does not persist there).
+// Enum-like fields are stored as String with allowed values documented inline
+// and validated in app code (see src/lib/enums.ts).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
