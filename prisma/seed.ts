@@ -263,7 +263,9 @@ async function main() {
           monthlyRent: u.rent, serviceCharge: u.service, deposit: u.rent * 3,
           indexationClause: true,
           lastIndexedAt: new Date(today.getFullYear(), 0, 1),
-          nextReviewDate: new Date(today.getFullYear() + 1, 0, 1),
+          // Mix of overdue, due-soon and later review dates so the indexation
+          // workflow has realistic candidates.
+          nextReviewDate: addMonths(today, [-1, 1, 8][tenantIdx % 3]),
           status: "ACTIVE",
         },
       });

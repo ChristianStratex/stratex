@@ -15,6 +15,7 @@ const dictionaries = {
       bank: "Bank & incasso",
       reports: "Rapportage",
       alerts: "Alerts",
+      indexation: "Indexatie",
       tax: "Fiscale structuur",
     },
     alerts: {
@@ -195,6 +196,7 @@ const dictionaries = {
       bank: "Bank & collection",
       reports: "Reports",
       alerts: "Alerts",
+      indexation: "Indexation",
       tax: "Tax structure",
     },
     alerts: {
